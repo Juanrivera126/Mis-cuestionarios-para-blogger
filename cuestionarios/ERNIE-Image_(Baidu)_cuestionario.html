@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧠 Pon a prueba lo que aprendiste — ERNIE-Image (Baidu)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.wrapper{max-width:680px;width:100%}
+.quiz-header{text-align:center;color:white;margin-bottom:2rem}
+.quiz-header h1{font-size:1.6rem;margin-bottom:.4rem;text-shadow:0 2px 4px rgba(0,0,0,.2)}
+.quiz-header p{opacity:.85;font-size:.95rem}
+.progress-bar{height:8px;background:rgba(255,255,255,.2);border-radius:4px;margin-bottom:2rem;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#f9ca24,#f0932b);border-radius:4px;transition:width .5s ease;width:0%}
+.q-card{background:rgba(255,255,255,.13);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:1.75rem;margin-bottom:1.25rem;display:none;animation:slideIn .4s ease}
+.q-card.active{display:block}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.q-number{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.q-text{font-size:1.05rem;font-weight:600;color:white;line-height:1.5;margin-bottom:1.25rem}
+.q-options{display:flex;flex-direction:column;gap:.6rem}
+.q-opt{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);border-radius:10px;cursor:pointer;color:white;font-size:.95rem;font-family:'Inter',sans-serif;font-weight:400;text-align:left;transition:all .2s ease;width:100%}
+.q-opt:hover:not(:disabled){background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);transform:translateX(4px)}
+.q-opt:disabled{cursor:default}
+.q-opt.correct{background:rgba(40,167,69,.4);border-color:#28a745}
+.q-opt.incorrect{background:rgba(220,53,69,.4);border-color:#dc3545}
+.q-opt.reveal{background:rgba(40,167,69,.25);border-color:rgba(40,167,69,.6)}
+.q-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.2);font-weight:700;font-size:.8rem;flex-shrink:0}
+.q-opt.correct .q-letter{background:#28a745}
+.q-opt.incorrect .q-letter{background:#dc3545}
+.q-opt.reveal .q-letter{background:rgba(40,167,69,.6)}
+.q-feedback{margin-top:.75rem;padding:.6rem 1rem;border-radius:8px;font-size:.9rem;font-weight:500;display:none;color:white}
+.q-feedback.show{display:block}
+.q-feedback.ok{background:rgba(40,167,69,.35);border-left:4px solid #28a745}
+.q-feedback.ko{background:rgba(220,53,69,.35);border-left:4px solid #dc3545}
+.nav{display:flex;justify-content:flex-end;margin-top:1rem}
+.btn-next{padding:.7rem 1.75rem;background:linear-gradient(135deg,#f9ca24,#f0932b);color:#333;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:filter .2s,transform .2s}
+.btn-next:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn-next:disabled{opacity:.4;cursor:default;transform:none}
+.score-panel{display:none;text-align:center;background:rgba(255,255,255,.13);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:2.5rem;color:white;animation:slideIn .5s ease}
+.score-panel.show{display:block}
+.score-emoji{font-size:3.5rem;margin-bottom:.5rem}
+.score-num{font-size:3rem;font-weight:700;color:#f9ca24}
+.score-lbl{opacity:.85;margin-top:.25rem}
+.score-msg{margin-top:1rem;font-size:1rem;opacity:.9}
+.btn-restart{margin-top:1.5rem;padding:.7rem 1.75rem;background:rgba(255,255,255,.2);color:white;border:2px solid rgba(255,255,255,.4);border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s}
+.btn-restart:hover{background:rgba(255,255,255,.3)}
+@media(max-width:500px){.quiz-header h1{font-size:1.3rem}.q-text{font-size:.97rem}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="quiz-header"><h1>🧠 Pon a prueba lo que aprendiste</h1><p>ERNIE-Image (Baidu)</p></div>
+  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+<div class="q-card" id="q0"><div class="q-number">Pregunta 1 de 5</div><div class="q-text">¿Cuál es el nombre del nuevo modelo de generación de imágenes por IA lanzado por Baidu?</div><div class="q-options"><button class="q-opt" onclick="answer(0,0,1,'El artículo menciona explícitamente que Baidu ha lanzado ERNIE-Image como su nuevo modelo de generación de imágenes.')"><span class="q-letter">A</span>ERNIE-Vision</button><button class="q-opt" onclick="answer(0,1,1,'El artículo menciona explícitamente que Baidu ha lanzado ERNIE-Image como su nuevo modelo de generación de imágenes.')"><span class="q-letter">B</span>ERNIE-Image</button><button class="q-opt" onclick="answer(0,2,1,'El artículo menciona explícitamente que Baidu ha lanzado ERNIE-Image como su nuevo modelo de generación de imágenes.')"><span class="q-letter">C</span>BaiduGen</button><button class="q-opt" onclick="answer(0,3,1,'El artículo menciona explícitamente que Baidu ha lanzado ERNIE-Image como su nuevo modelo de generación de imágenes.')"><span class="q-letter">D</span>Text2Art</button></div><div class="q-feedback" id="fb0"></div></div><div class="q-card" id="q1"><div class="q-number">Pregunta 2 de 5</div><div class="q-text">¿En qué fecha fue presentado ERNIE-Image?</div><div class="q-options"><button class="q-opt" onclick="answer(1,0,0,'El artículo de blog, fechado el 17 de abril de 2026, indica que ERNIE-Image fue presentado el 15 de abril de 2026.')"><span class="q-letter">A</span>15 de abril de 2026</button><button class="q-opt" onclick="answer(1,1,0,'El artículo de blog, fechado el 17 de abril de 2026, indica que ERNIE-Image fue presentado el 15 de abril de 2026.')"><span class="q-letter">B</span>16 de abril de 2026</button><button class="q-opt" onclick="answer(1,2,0,'El artículo de blog, fechado el 17 de abril de 2026, indica que ERNIE-Image fue presentado el 15 de abril de 2026.')"><span class="q-letter">C</span>17 de abril de 2026</button><button class="q-opt" onclick="answer(1,3,0,'El artículo de blog, fechado el 17 de abril de 2026, indica que ERNIE-Image fue presentado el 15 de abril de 2026.')"><span class="q-letter">D</span>14 de abril de 2026</button></div><div class="q-feedback" id="fb1"></div></div><div class="q-card" id="q2"><div class="q-number">Pregunta 3 de 5</div><div class="q-text">¿Cuál es la arquitectura principal en la que se basa ERNIE-Image?</div><div class="q-options"><button class="q-opt" onclick="answer(2,0,2,'El texto especifica que ERNIE-Image se basa en la arquitectura Diffusion Transformer (DiT) de un solo flujo.')"><span class="q-letter">A</span>Generative Adversarial Network (GAN)</button><button class="q-opt" onclick="answer(2,1,2,'El texto especifica que ERNIE-Image se basa en la arquitectura Diffusion Transformer (DiT) de un solo flujo.')"><span class="q-letter">B</span>Recurrent Neural Network (RNN)</button><button class="q-opt" onclick="answer(2,2,2,'El texto especifica que ERNIE-Image se basa en la arquitectura Diffusion Transformer (DiT) de un solo flujo.')"><span class="q-letter">C</span>Diffusion Transformer (DiT)</button><button class="q-opt" onclick="answer(2,3,2,'El texto especifica que ERNIE-Image se basa en la arquitectura Diffusion Transformer (DiT) de un solo flujo.')"><span class="q-letter">D</span>Convolutional Neural Network (CNN)</button></div><div class="q-feedback" id="fb2"></div></div><div class="q-card" id="q3"><div class="q-number">Pregunta 4 de 5</div><div class="q-text">¿Qué capacidad distintiva tiene ERNIE-Image en comparación con modelos anteriores, especialmente en lo que respecta al texto?</div><div class="q-options"><button class="q-opt" onclick="answer(3,0,2,'El artículo destaca que ERNIE-Image ha sido entrenado para superar el desafío de incluir texto legible y bien posicionado, siendo capaz de generar texto denso, de formato largo y sensible a la disposición con fidelidad excepcional.')"><span class="q-letter">A</span>Genera imágenes abstractas sin texto.</button><button class="q-opt" onclick="answer(3,1,2,'El artículo destaca que ERNIE-Image ha sido entrenado para superar el desafío de incluir texto legible y bien posicionado, siendo capaz de generar texto denso, de formato largo y sensible a la disposición con fidelidad excepcional.')"><span class="q-letter">B</span>Produce texto distorsionado e ilegible.</button><button class="q-opt" onclick="answer(3,2,2,'El artículo destaca que ERNIE-Image ha sido entrenado para superar el desafío de incluir texto legible y bien posicionado, siendo capaz de generar texto denso, de formato largo y sensible a la disposición con fidelidad excepcional.')"><span class="q-letter">C</span>Es capaz de generar texto legible y bien posicionado dentro de las imágenes.</button><button class="q-opt" onclick="answer(3,3,2,'El artículo destaca que ERNIE-Image ha sido entrenado para superar el desafío de incluir texto legible y bien posicionado, siendo capaz de generar texto denso, de formato largo y sensible a la disposición con fidelidad excepcional.')"><span class="q-letter">D</span>Solo puede generar texto en inglés.</button></div><div class="q-feedback" id="fb3"></div></div><div class="q-card" id="q4"><div class="q-number">Pregunta 5 de 5</div><div class="q-text">¿Qué componente ligero incluye la arquitectura de ERNIE-Image para mejorar las indicaciones de texto?</div><div class="q-options"><button class="q-opt" onclick="answer(4,0,3,'El artículo menciona que la arquitectura de ERNIE-Image incluye un \'Prompt Enhancer\' ligero que expande las indicaciones de texto breves en indicaciones más ricas y estructuradas.')"><span class="q-letter">A</span>Un Renderizador de Texto Avanzado</button><button class="q-opt" onclick="answer(4,1,3,'El artículo menciona que la arquitectura de ERNIE-Image incluye un \'Prompt Enhancer\' ligero que expande las indicaciones de texto breves en indicaciones más ricas y estructuradas.')"><span class="q-letter">B</span>Un Procesador de Lenguaje Natural</button><button class="q-opt" onclick="answer(4,2,3,'El artículo menciona que la arquitectura de ERNIE-Image incluye un \'Prompt Enhancer\' ligero que expande las indicaciones de texto breves en indicaciones más ricas y estructuradas.')"><span class="q-letter">C</span>Un Generador de Composiciones Visuales</button><button class="q-opt" onclick="answer(4,3,3,'El artículo menciona que la arquitectura de ERNIE-Image incluye un \'Prompt Enhancer\' ligero que expande las indicaciones de texto breves en indicaciones más ricas y estructuradas.')"><span class="q-letter">D</span>Un Prompt Enhancer</button></div><div class="q-feedback" id="fb4"></div></div>  <div class="score-panel" id="score-panel">    <div class="score-emoji" id="sc-emoji"></div>    <div class="score-num" id="sc-num"></div>    <div class="score-lbl" id="sc-lbl"></div>    <div class="score-msg" id="sc-msg"></div>    <button class="btn-restart" onclick="restart()">🔄 Reintentar</button>  </div>
+  <div class="nav"><button class="btn-next" id="btn-next" disabled onclick="next()">Siguiente →</button></div>
+</div>
+<script>
+var total=5;
+var scoreMessages=["¡Sigue practicando! 💪","¡Buen intento! 👍","¡Muy bien! 🌟","¡Excelente! 🏆"];
+var finishLabel="Ver resultados";
+var nextLabel="Siguiente →";
+var correctLabel="¡Correcto! 🎉";
+var incorrectLabel="Incorrecto. La respuesta correcta era:";
+var scoreLabelTpl="de {total} correctas";
+var current=0,score=0;
+function showQ(i){
+  document.querySelectorAll(".q-card").forEach(function(c){c.classList.remove("active");});
+  var card=document.getElementById("q"+i);
+  if(card)card.classList.add("active");
+  document.getElementById("prog").style.width=(i/total*100)+"%";
+  var btn=document.getElementById("btn-next");
+  btn.disabled=true;
+  btn.textContent=(i===total-1)?finishLabel:nextLabel;
+}
+function answer(qi,chosen,correct,explanation){
+  var card=document.getElementById("q"+qi);
+  var opts=card.querySelectorAll(".q-opt");
+  opts.forEach(function(o){o.disabled=true;});
+  var fb=document.getElementById("fb"+qi);
+  if(chosen===correct){
+    opts[chosen].classList.add("correct");score++;
+    fb.textContent=correctLabel;fb.className="q-feedback ok show";
+  }else{
+    opts[chosen].classList.add("incorrect");
+    opts[correct].classList.add("reveal");
+    fb.textContent=incorrectLabel+" "+opts[correct].textContent.trim()+(explanation?". "+explanation:"");
+    fb.className="q-feedback ko show";
+  }
+  document.getElementById("btn-next").disabled=false;
+}
+function next(){
+  current++;
+  if(current<total){showQ(current);}
+  else{
+    document.getElementById("btn-next").style.display="none";
+    var pct=score/total;
+    var mi=pct<0.4?0:pct<0.6?1:pct<0.9?2:3;
+    var emojis=["😅","🙂","😊","🥳"];
+    document.getElementById("sc-emoji").textContent=emojis[mi];
+    document.getElementById("sc-num").textContent=score+"/"+total;
+    document.getElementById("sc-lbl").textContent=scoreLabelTpl.replace("{total}",total);
+    document.getElementById("sc-msg").textContent=scoreMessages[mi];
+    document.getElementById("prog").style.width="100%";
+    document.getElementById("score-panel").classList.add("show");
+  }
+}
+function restart(){
+  score=0;current=0;
+  document.querySelectorAll(".q-opt").forEach(function(o){o.disabled=false;o.className="q-opt";});
+  document.querySelectorAll(".q-feedback").forEach(function(f){f.className="q-feedback";f.textContent="";});
+  document.getElementById("score-panel").classList.remove("show");
+  document.getElementById("btn-next").style.display="";
+  showQ(0);
+}
+showQ(0);
+</script>
+</body>
+</html>

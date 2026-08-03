@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot: Rectora</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';</script>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+            options: { processHtmlClass: "tex2jax_process", ignoreHtmlClass: "tex2jax_ignore" }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/docx@7.3.0/build/index.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        :root{--primary:#007bff;--secondary:#6c757d;--light:#f8f9fa;--dark:#343a40;--success:#28a745;--danger:#dc3545;--warning:orange;--radius:8px;--font:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;--bg:var(--light);--text:var(--dark);--card:#fff;--border:#ddd;--input:#fff;--iborder:#ccc;--bot-bg:#e9ecef;--bot-text:var(--dark);--user-bg:var(--primary);--user-text:#fff;--sys-bg:#fff3cd;--sys-text:#856404;}
+        body.dark-mode{--bg:#212529;--text:#f8f9fa;--card:#343a40;--border:#495057;--input:#495057;--iborder:#6c757d;--bot-bg:#495057;--bot-text:#f8f9fa;--sys-bg:#332701;--sys-text:#ffeb8f;}
+        body{font-family:var(--font);margin:0;background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh;transition:background .3s,color .3s;}
+        .container{width:90%;max-width:800px;margin:20px auto;padding:20px;background:var(--card);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,.1);flex-grow:1;display:flex;flex-direction:column;gap:15px;}
+        header{text-align:center;border-bottom:1px solid var(--border);padding-bottom:15px;}
+        header h1{color:var(--primary);margin:0;font-size:1.6em;}
+        header p{margin:5px 0 0;font-size:.9em;color:var(--secondary);}
+        .toolbar{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;}
+        button{background:var(--primary);color:#fff;border:none;padding:8px 15px;border-radius:var(--radius);cursor:pointer;font-size:.9em;transition:background .2s;}
+        button:hover{background:#0056b3;}
+        button:disabled{background:var(--secondary)!important;opacity:.65;cursor:not-allowed;}
+        #theme-btn{background:var(--secondary);}
+        #palette-btn{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;}
+        .toolbar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .btn-export{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:.85em;transition:background .2s;}
+        .btn-export:hover{background:#0056b3;}
+        .pdf2-section{padding:10px;border:1px dashed var(--border);border-radius:var(--radius);}
+        .pdf2-section label.title{font-size:.85em;font-weight:bold;display:block;margin-bottom:6px;color:var(--secondary);}
+        .file-row{display:flex;align-items:center;gap:10px;}
+        .file-row input[type=file]{display:none;}
+        .file-label{background:var(--secondary);color:#fff;padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-size:.85em;}
+        .file-label:hover{background:#545b62;}
+        #pdf2-name{font-style:italic;color:var(--secondary);font-size:.85em;}
+        #pdf2-status{font-size:.85em;margin-top:4px;font-weight:bold;}
+        .suggested-questions-row{display:flex;flex-direction:column;gap:6px;}
+        .sq-label{font-size:.85em;font-weight:600;color:var(--secondary);}
+        .questions-select{width:100%;padding:8px;border:1px solid var(--iborder);border-radius:var(--radius);background:var(--input);color:var(--text);font-size:.9em;}
+        .chat-display{height:360px;overflow-y:auto;border:1px solid var(--iborder);border-radius:var(--radius);padding:10px;background:var(--bg);line-height:1.6;}
+        .chat-display .user-message,.chat-display .bot-message,.chat-display .system-message{margin-bottom:10px;word-wrap:break-word;}
+        .chat-display .user-message,.chat-display .bot-message{background:transparent;color:inherit;padding:0;border-radius:0;max-width:100%;text-align:inherit;margin-left:0;}
+        .message{display:flex;align-items:flex-end;gap:10px;margin-bottom:4px;max-width:100%;}
+        .message.user-message{flex-direction:row-reverse;justify-content:flex-start;}
+        .avatar-img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #eee;background-color:#f0f0f0;}
+        body.dark-mode .avatar-img{border-color:#444;background-color:#555;}
+        .message-bubble{padding:10px 15px;border-radius:18px;max-width:85%;word-wrap:break-word;line-height:1.5;display:flex;flex-direction:column;}
+        .user-message .message-bubble.user-bubble{background:var(--user-bg);color:var(--user-text);border-bottom-right-radius:5px;margin-left:auto;}
+        .bot-message .message-bubble.bot-bubble{background:var(--bot-bg);color:var(--bot-text);border-bottom-left-radius:5px;margin-right:auto;}
+        .chat-display .message-bubble strong{color:var(--primary);font-size:.9em;}
+        .chat-display .bot-message .message-bubble p{margin:0 0 8px;}.chat-display .bot-message .message-bubble p:last-child{margin:0;}
+        .chat-display .bot-message .message-bubble pre{background:var(--dark);color:var(--light);padding:10px;border-radius:5px;overflow-x:auto;}
+        .chat-display .bot-message .message-bubble code{background:rgba(0,0,0,.1);padding:2px 4px;border-radius:3px;}
+        body.dark-mode .chat-display .bot-message .message-bubble code{background:rgba(255,255,255,.1);}
+        .chat-display .system-message{background:var(--sys-bg);color:var(--sys-text);text-align:center;font-style:italic;font-size:.9em;padding:8px 12px;border-radius:var(--radius);}
+        .chat-display .system-message.error{background:#f8d7da;color:#721c24;}
+        .thinking-animation{opacity:.75;animation:pulseThink 1s ease-in-out infinite;}
+        @keyframes pulseThink{50%{opacity:1}}
+        .input-area{display:flex;gap:10px;}
+        #question-input{flex-grow:1;padding:10px;border:1px solid var(--iborder);border-radius:var(--radius);font-size:1em;resize:none;background:var(--input);color:var(--text);}
+        #send-button{background:var(--success);padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;}
+        #send-button:hover{background:#1e7e34;}
+        .loader{border:3px solid #f3f3f3;border-top:3px solid var(--primary);border-radius:50%;width:16px;height:16px;animation:spin 1s linear infinite;display:none;}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        footer{text-align:center;padding:12px;background:var(--dark);color:var(--light);font-size:.8em;margin-top:20px;}
+        @media(max-width:600px){.input-area{flex-direction:column;}#send-button{width:100%;padding:12px;}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Chatbot PDF Interactivo</h1>
+        <p>Rectora</p>
+    </header>
+    <div class="toolbar">
+        <div class="toolbar-actions">
+            <button type="button" id="download-html-session-btn" class="btn-export">📥 Descargar HTML</button>
+            <button type="button" id="download-word-session-btn" class="btn-export">📥 Descargar Word</button>
+            <button type="button" id="theme-btn">🌓 Tema</button>
+            <button type="button" id="palette-btn">🎨 Paleta de colores</button>
+        </div>
+    </div>
+    <div class="pdf2-section">
+        <label class="title">📎 Segundo PDF (opcional)</label>
+        <div class="file-row">
+            <label for="pdf2-upload" class="file-label">+ Seleccionar PDF</label>
+            <input type="file" id="pdf2-upload" accept=".pdf">
+            <span id="pdf2-name">Ningún archivo seleccionado</span>
+        </div>
+        <div id="pdf2-status"></div>
+    </div>
+    <div class="suggested-questions-row">
+        <label for="questions-selector" class="sq-label">Preguntas sugeridas</label>
+        <select id="questions-selector" class="questions-select" title="Elegir una pregunta propuesta">
+            <option value="">— Elige una pregunta —</option>
+        </select>
+    </div>
+    <div id="chat-display" class="chat-display"></div>
+    <div class="input-area">
+        <textarea id="question-input" rows="2" placeholder="Escribe tu pregunta aquí..."></textarea>
+        <button id="send-button">
+            <span id="send-button-text">Enviar</span>
+            <div class="loader" id="loading-spinner"></div>
+        </button>
+    </div>
+</div>
+<footer><p>Diseñado por Juan Guillermo Rivera Berrío con tecnología Gemini 3.1 Pro y la IA agéntica Antigravity</p></footer>
+<script>
+    const PDF_TEXT = "\nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  1       FORMAR. SERVIR. CUIDAR.    Propuesta Rectoral 2026 – 2030    Institución Universitaria Pascual Bravo    Adscrita al Distrito Especial de Ciencia, Tecnología e Innovación de Medellín    Acreditada en Alta Calidad  —   Resolución 012512 del MEN, 29 de junio de 2022    Liliana Patricia Restrepo Villa    Administradora de Empresas · Especialista en Docencia Universitaria · Magíster en Educación    Vicerrectora Administrativa y Financiera de la I.U. Pascual Bravo (2014 – presente)      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  2    TABLA DE CONTENIDO    INTRODUCCIÓN   ................................ ................................ ................................   4    LÍNEAS ESTRATÉGICAS DE IMPACTO   ................................ ..............................   8    Del sentido a la acción institucional   ................................ ................................ ...............................   8    LÍNEA ESTRATÉGICA 1   ................................ ................................ ...................   10    Trayectorias formativas pertinentes a lo largo de la vida   ................................ ............................   10    Ecosistema formativo integrado   ................................ ................................ ................................ .......   11    Profundización académica y talento docente   ................................ ................................ ...................   11    LÍNEA ESTRATÉGICA 2   ................................ ................................ ....................   13    Conocimiento, innovación y compromiso con el territorio   ................................ ..........................   13    Investigación e inteligencia artificial   ................................ ................................ ................................   14    Relación con el sector productivo y propiedad intelectual   ................................ ..............................   14    Ecosistema CTI y rutas globales   ................................ ................................ ................................ .......   15    LÍNEA ESTRATÉGICA 3   ................................ ................................ ....................   17    Gobernanza eficiente, bienestar y sostenibilidad institucional   ................................ ....................   17    Calidad y aseguramiento institucional   ................................ ................................ .............................   18    Talento humano y transformación digital   ................................ ................................ ........................   19    Articulación de las tres líneas   ................................ ................................ ................................ ........   19    PROPÓSITO Y ESTRATEGIA   ................................ ................................ ............   20    El porqué de esta propuesta rectoral   ................................ ................................ ............................   20    Una propuesta centrada en las personas   ................................ ................................ .....................   20    Una mirada humanista, tecnológica y global   ................................ ................................ ...............   20    Un porqué que se convierte en responsabilidad   ................................ ................................ ...........   21    EL POR QUÉ YO   ................................ ................................ ...............................   22    Trayectoria, legitimidad y capacidad para liderar este momento   ................................ ...............   22    CÓMO LO VAMOS A HACER   ................................ ................................ ............   23    De la gestión reactiva a la gestión anticipativa   ................................ ................................ ............   23    Principios operativos de esta rectoría   ................................ ................................ .............................   23    Planeación estratégica con sentido humano   ................................ ................................ ...................   23    Gobernanza participativa   ................................ ................................ ................................ ................   23    Gestión ágil y orientada al servicio   ................................ ................................ ................................ ..   23    El bienestar como principio de gestión   ................................ ................................ ...........................   23    MARCO CONCEPTUAL   ................................ ................................ ....................   25    Educación, tecnología, humanidad y sentido público   ................................ ................................ .   25    Complejidad y complementariedad de saberes: Edgar Morin   ................................ .......................   25    Educación, acción y responsabilidad en lo público: Hannah Arendt   ................................ .............   26    Capacidades humanas, dignidad y justicia educativa: Martha Nussbaum   ................................ ....   26    El valor del trabajo, la técnica y el hacer con sentido: Richard Sennett   ................................ .........   26    Educación crítica, autonomía y sentido de límite: Iván Illich   ................................ ........................   26    Formación integral y desarrollo humano: Rudolf Steiner   ................................ ..............................   26    Educación técnica, trayectorias y trabajo: Moodie, Wheelahan y Labbé   ................................ .......   26    Currículo, coherencia y sentido: Jan Van den Akker   ................................ ................................ ......   26   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  3    Educación como bien público: Unesco, OCDE, Banco Mundial, BID y Foro Económico Mundial   27    RUTA DE IMPLEMENTACIÓN   ................................ ................................ .........   28    Gobernar con tiempos claros: 100 días, un año y un horizonte de rectoría   ................................   28    I. Los primeros 100 días: Ordenar, escuchar y sentar bases   ................................ .......................   28    II. El primer año: Implementar, articular y consolidar   ................................ ...............................   28    III. Horizonte de la rectoría (cuatro años): Proyectar y dejar capacidad instalada   ....................   28    FORMAR. SERVIR. CUIDAR.   ................................ ................................ ...........   29         \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  4    INTRODUCCIÓN    Formar. Servir. Cuidar.       La  Institución  Universitaria  Pascual  Bravo  tiene  una  misión  clara:  ser  una  institución   universitaria  de  carácter  público,  comprometida  con  la  formación  e  investigación  tecnológica,   orientada  a  la  excelencia  académica,  que  propicia  el  desarrollo  integral,  é tico  y  creativo  de  las   personas, con pertinencia social, de tradición y estrecha relación con el sector empresarial, una   organización  que  aprende  y  asume  retos  permanentes  para  la  transformación  de  vidas  y   territorios  desde  el  conocimiento  y  para  el  desarr ollo  sostenible,  relacionada  nacional  e   internacionalmente, que contribuye a la construcción de sociedad con inclusión y equidad.    Su  visión  al  2030  la  proyecta  como  referente  nacional  e  internacional  por  la  excelencia  en   investigación  tecnológica,  innovación  y  creatividad,  con  redes  académicas  consolidadas,   transferencia de conocimiento y trabajo colaborativo, con impacto en el secto r empresarial y en   la sociedad, con procesos académicos de alta calidad alineados con la agenda global de desarrollo   sostenible,  visible  por  su  modelo  de  campus  verde,  inteligente  e  inclusivo,  y  destacada  en  su   capacidad transformadora en un entorno de bie nestar para la felicidad.    Esta  propuesta  rectoral  se  inscribe  como  expresión  viva  del  Proyecto  Educativo  Institucional   (PEI) y nace del compromiso con la materialización de esa misión y esa visión. Formar, servir y   cuidar  no  son  conceptos  autónomos:  son  la  traducción  estratégica  y    operativa  de  la  identidad   institucional, del carácter tecnológico que nos define, del lema que nos acompaña  — Tecnología,   innovación, cultura y vida —   y de la vocación de servicio que nos ha distinguido durante décadas.   Por  encima  de  estos  tres  conceptos  est á  la  gran  sombrilla  del  PEI  y  de  la  calidad  como  cultura   institucional, que esta rectoría se propone consolidar, especialmente de cara a la renovación de la   Acreditación Institucional en Alta Calidad que deberá gestionarse durante este periodo rectoral.    En Colombia, la tasa de tránsito inmediato a la educación superior pasó de 41,1 % en 2022 a 45,9   % en 2024, un avance significativo que aún deja a más de la mitad de los bachilleres sin acceso   inmediato  a  estudios  superiores ¹ .  En  las  zonas  rurales,  la  tasa     apenas  alcanza  el  30  %,  lo  que   evidencia  brechas  persistentes ² .  En  Antioquia,  las  nueve  instituciones  de  educación  superior   públicas recibieron $2,2 billones entre 2023 y 2025, lo que representa un incremento del 54 %   frente a 2022, y la política de gratu idad ha alcanzado una cobertura del 93 % de los matriculados ³ .   Medellín, reconocida como Distrito Especial de Ciencia, Tecnología e Innovación, destinó más de   $125.500 millones al Fondo Distrital de CTI en 2025 y se consolida como uno de los ecosistemas   de     emprendimiento  más  sólidos  de  América  Latina,  con  63  puntos  en  el  Índice  de  Condiciones   para el Emprendimiento Dinámico ⁴ .    ¹  SNIES  –   Ministerio de Educación Nacional, cierre estadístico 2024 (presentado julio de 2025).    ²  Ibid. Tasa de tránsito inmediato en zonas rurales: 29,97 % (2024).   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  5    ³  Ministerio de Educación Nacional, comunicado «Gobierno del Cambio ha invertido más de $8,3 billones...»,   diciembre 2025.    ⁴  GEIAL, Reporte Comparado 2025; Alcaldía de Medellín, Fondo Distrital CTI vigencia 2025.    Pascual Bravo no opera en el vacío. El sistema de educación superior de Antioquia es el segundo   más grande del país, con el 13,6 % de la matrícula nacional, pero su distribución es profundamente   desigual:  el  81,4  %  de  esa  matrícula  se  concentra  en  el  área    metropolitana  del  Valle  de  Aburrá,   mientras apenas el 18,6 % se localiza en las demás ocho subregiones ⁵ . En esas subregiones, solo   el 32,5 % de los bachilleres transita de inmediato a la educación superior, frente al 47,6 % en el   Valle de Aburrá ⁶ . En las z onas rurales del departamento, apenas el 26 % de los estudiantes que   ingresan al sistema culmina la educación media en los tiempos previstos, frente al 81 % en zonas   urbanas ⁷ . A nivel nacional, la matrícula total de educación superior alcanzó 2.553.560 est udiantes   en  2024,  de  los  cuales  cerca  del  55  %  pertenecen  al  sector  oficial;  el  presupuesto  nacional  para   educación superó los $79 billones en 2025, con un crecimiento acumulado del 17 % en términos   reales desde 2023 ⁸ .    ⁵   SNIES  –   Ministerio de Educación Nacional, dato estadístico anual 2024.    ⁶   Plan de Desarrollo Departamental «Por Antioquia Firme» 2024 – 2027, Ordenanza 18 de 2024.    ⁷   Proantioquia, Lupa para la Educación de Antioquia (LEA), 2024.    ⁸   Ministerio de Hacienda y Crédito Público, PGN 2025; Oficina Asesora de Planeación y Finanzas, MEN.    Este  es  el  escenario  en  el  que  Pascual  Bravo,  acreditada  en  Alta  Calidad  mediante  Resolución   012512 del 29 de junio de 2022 por seis años, se proyecta hacia su siguiente etapa histórica. Un   momento  que  exige  visión  estratégica,  capacidad  de  gerencia  educat iva  y  un  compromiso   profundo con lo público, con la calidad y con la sostenibilidad.    Esta propuesta nace de una convicción: las instituciones educativas no se transforman solo por   decreto ni por la acumulación de logros, sino por la coherencia entre lo que son, lo que hacen y lo   que deciden ser. Pascual Bravo ha llegado a un punto de su hi storia en el que esa coherencia exige   una lectura honesta del camino recorrido  — del cual he sido parte activa —   y, al mismo tiempo, una   apuesta clara por el futuro.    Pascual  Bravo  es  una  institución  de  carácter  tecnológico.  Esa  ha  sido  su  esencia,  su  objeto  de   estudio y su aporte histórico a Medellín, a Antioquia y al país. La técnica, la tecnología y el saber   aplicado han sido, desde sus orígenes, una forma concreta d e servir a la ciudad. Ese carácter hoy   se reafirma desde una comprensión más amplia y contemporánea del conocimiento.    La  Institución  de  hoy  no  es  la  misma  que  la  de  ayer.  Ha  vivido  una  transformación  profunda,   sostenida  y  acelerada,  todo  esto  ha  sido  posible  gracias  al  trabajo  comprometido  de  toda  la   comunidad académica y administrativa. Pascual Bravo ha ampliado su propu esta académica, ha   fortalecido sus facultades de Ingeniería y de Producción y Diseño, y ha incorporado programas   profesionales  y  posgrados  que  dialogan  con  las  complejidades  del  mundo  del  trabajo,  la   innovación y la creación. Esa transformación también ha  sido simbólica y humana: el paso de una  \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  6    tradición marcadamente masculina a una comunidad en la que lo femenino ocupa un lugar visible,   legítimo  y  decisorio  ha  reconfigurado  la  vida  institucional.  La  diversidad  cultural,  las  múltiples   trayectorias de vida y las distintas formas de habitar la ciud ad y la región forman hoy parte del   proyecto institucional.    Servir a Medellín siempre ha sido una vocación de la Institución, pero no excluye a las regiones   de Antioquia ni al país. Pascual Bravo ha extendido su impacto más allá de los límites urbanos,   incorporando  realidades  regionales  que  demandan  formación  perti nente.  Esta  vocación  se  ha   materializado en una apuesta histórica por los sectores populares: la Institución ha sido, durante   décadas, una puerta de entrada a la educación superior para estudiantes de los estratos más bajos.    Esta  propuesta  se  formula  desde  una  historia  personal  que  dialoga  con  la  institucional.  Haber   nacido en  Aranjuez,  un barrio popular de Medellín, hija de padres campesinos  — una maestra de   escuela rural y de un obrero de fábrica, dos oficios silenciosos que ayudaron a construir la región   desde  el  aula  y  desde  el  taller.  Haberme  formado  en  la  educación  pública  y  haber  re corrido   distintos  escenarios  universitarios  como  docente,  directora  de  prácticas,  de  emprendimiento,   directora de extensión y vicerrectora administrativa y financiera conforman una experiencia que   permite comprender las realidades de quienes integran esta  comunidad.    Durante  quince  años  en  Pascual  Bravo    — cuatro  como  directora  de  extensión  y  once  como   vicerrectora administrativa y financiera — , he construido comunidad, he obtenido resultados y he   ejercido  un  liderazgo  comprometido  con  el  servicio  público.  He  sido  parte  a ctiva  de  la   administración que llevó a la Institución a obtener su Acreditación en Alta Calidad y a consolidar   su presencia en el ecosistema de CTI de Medellín.    Lo construido hasta hoy es el cimiento sobre el cual esta propuesta se levanta. Pero el momento   exige dar un paso adicional: el tamaño, la complejidad y las responsabilidades de Pascual Bravo   demandan transitar hacia una gestión que además de responder, an ticipe.    ¿Por  qué  una  rectoría  que  ponga  en  el  centro  la  formación,  el  servicio  y  el  bienestar  de  su   comunidad? ¿Por qué una rectoría que asuma la renovación de la acreditación institucional como   compromiso central y la calidad como lenguaje común?    Las páginas que siguen desarrollan esta propuesta desde tres líneas estratégicas de impacto que   se articulan: trayectorias formativas pertinentes a lo largo de la vida; conocimiento, innovación y   compromiso  con  el  territorio;  y  gobernanza  eficiente,  bienes tar  y  sostenibilidad  institucional.   Todas se integran con el PEI, la misión y la visión institucional, con el mapa de procesos y con   referentes nacionales e internacionales  — incluidos el Acuerdo 02 de 2020 y el Acuerdo 01 de 2025   del CESU — . La calidad y la   sostenibilidad atraviesan transversalmente toda la propuesta.    Las  propuestas  que  se  presentan  constituyen  una  ruta  orientadora.     El  plan  de   desarrollo  que  dará  vida  a  estas  líneas  se  construirá  de  manera  participativa  con  los  diferentes   actores institucionales  — docentes, estudiantes, egresados, personal administrativo, empresarios  \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  7    y  aliados  estratégicos — ,  quienes  aportarán  en  la  definición  de  las  actividades  concretas.  Esta   propuesta traza el rumbo; la comunidad construirá el camino.    Esta no es una promesa grandilocuente. Es una invitación a seguir transformando, con cuidado y   decisión, una institución que ya ha demostrado su capacidad de cambio. Porque ahí, y solo ahí, se   juega el futuro de Pascual Bravo.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  8    LÍNEAS ESTRATÉGICAS DE IMPACTO    Del sentido a la acción institucional    Las líneas estratégicas que estructuran esta propuesta son decisiones de fondo sobre cómo debe   actuar  hoy  una  institución  universitaria  pública  con  carácter  tecnológico,  en  coherencia  con  su   PEI, su misión, su visión 2030 y los lineamientos del sistema de  aseguramiento de la calidad. Cada   línea  responde  a  un  porqué  institucional,  dialoga  con  el  marco  conceptual  y  se  articula  con  los   procesos misionales, estratégicos y de apoyo. Juntas conforman una visión coherente de rectoría   bajo  el  principio  Formar  ·  Ser vir  ·  Cuidar,  siempre  bajo  la  gran  sombrilla  de  la  calidad  y  la   sostenibilidad.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  9       Figura 1. Mapa conceptual de la propuesta rectoral Formar  ·  Servir  ·  Cuidar.       P r o p u e s t a   R e c t o r a l   20 26 – 20 3 0   ·   L i l i a n a   P a t r i c i a   R e s t r e p o   V i l l a   ·   I . U .   P a s c u a l   B r a v o \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  10    LÍNEA ESTRATÉGICA 1    Trayectorias formativas pertinentes a lo largo de la vida    Objetivo estratégico:    Consolidar un ecosistema formativo integrado, flexible y de calidad que acompañe a las personas   a lo largo de toda su vida, articulando los distintos niveles y modalidades de formación con el PEI,   las necesidades del territorio y las exigencias del asegura miento de la calidad, garantizando valor   agregado al estudiante en cada etapa de su trayectoria.    Los  datos  del  sistema  educativo  confirman  la  urgencia  de  esta  línea.  En  Antioquia,  la  tasa  de   tránsito inmediato a la educación superior para municipios no certificados se ubicó en 34,9 % en   2024, mientras que en Medellín alcanzó el 49 % ⁹ . Los programas de   articulación de media técnica   beneficiaron  a  8.471  estudiantes  en  2024,  y  el  SENA  Regional  Antioquia  reportó  50.226   estudiantes en articulación con grados 10 y 11 ¹⁰ . El puntaje promedio de Saber 11 en Antioquia es   de 257 puntos, por debajo del nacional de   260, con brechas subregionales que van desde 258 en   el Oriente hasta 221 en Nordeste y Urabá ¹¹ .    ⁹   SNIES  –   MEN, estadísticas de tasa de tránsito inmediato por municipio, 2024.    ¹⁰  Informe de Calidad de Vida de Antioquia, 2024; SENA Regional Antioquia, Informe de Gestión 2024.    ¹¹  ICFES, Informe Nacional de Resultados Saber 11, 2024; Antioquia Cómo Vamos, 2024.    Prioridades del cuatrienio en esta línea:    (i) Articular de manera efectiva los niveles técnico, tecnológico y profesional con mecanismos   reales de homologación y movilidad. (ii) Diversificar la oferta formativa con macro y   microcredenciales y educación continua vinculadas al sector productivo. (ii i) Fortalecer la planta   docente con perfiles que integren investigación formativa e innovación pedagógica.    La  Unesco,  en  Reimaginar  juntos  nuestros  futuros  (2021),  plantea  que  la  educación  debe   garantizarse como un derecho a lo largo de toda la vida y que las instituciones deben adaptarse a   las necesidades de los estudiantes ¹² . El carácter tecnológico de la Ins titución se fortalece cuando   se articula con programas profesionales y posgrados, reconoce los aprendizajes previos, permite   transiciones fluidas entre niveles y se conecta con las realidades del trabajo. Aquí se inscribe el   Laboratorio  Global  del  Aprendiz aje  para  Todos:  el  jardín  infantil,  los  programas  técnicos,   tecnológicos, profesionales, los posgrados y la educación continua no se conciben como islas, sino   como partes de un mismo ecosistema.    ¹²  UNESCO, Reimaginar juntos nuestros futuros: Un nuevo contrato social para la educación, París, 2021.    En  coherencia  con  las  políticas  del  Distrito  de  CTI  y  con  el  enfoque  STEM+H  promovido  en  la   ciudad,  esta  línea  busca  fortalecer  la  integración  curricular  escuela - universidad,  las  medias   técnicas,  las  dobles  titulaciones  y  las  posibilidades  de  homologación.   Esta  línea  articula  \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  11    principalmente:  docencia;  extensión  y  educación  continua;  internacionalización;  gestión   curricular; y relación con egresados.    »  ¿Qué valor agrega esta línea al estudiante?    Una ruta formativa clara, en la que cada nivel se reconoce y se articula con el siguiente, donde los   aprendizajes previos cuentan, donde puede complementar su formación con microcredenciales y   donde la calidad está garantizada en cada etapa.    »  ¿Qué valor agrega al profesor?    Mayor  claridad  curricular,  oportunidades  de  desarrollo  profesional  e  investigativo,  y  la   posibilidad de contribuir a programas de distintos niveles con reconocimiento de su saber.    Propuestas concretas:    Ecosistema formativo integrado    1. Currículos flexibles y conectados:  creación de un programa institucional de   reconocimiento de saberes previos, homologación y movilidad entre niveles formativos, en el   marco del modelo de calidad institucional, de modo que cada trayectoria educativa se   articule con la siguiente.    2. Nuevas rutas de aprendizaje:  diseño de un modelo institucional de macro y   microcredenciales, formación continua y educación a lo largo de la vida, articulado con el   sector productivo y con mecanismos claros de aseguramiento de la calidad, en coherencia   con el Acuerdo 01 de 2025 del CE SU.    Profundización académica y talento docente    3. Profundización y excelencia académica:  fortalecimiento de la oferta posgradual con   programas que pongan la ciencia, la tecnología y la innovación al servicio de la formación,   respondiendo a las demandas del Distrito de CTI y contribuyendo a la visión 2030.    4. Docentes que investigan, investigadores que enseñan:  ampliación de la planta   docente con perfiles de investigación aplicada, innovación pedagógica e inteligencia   artificial, acompañada de un plan de cualificación profesoral permanente que vincule la   investigación formativa con la práctica docente.    Resultados esperados a 2028:    Al menos tres rutas de homologación formalizadas entre niveles técnico - tecnológico - profesional.   Oferta activa de macro y microcredenciales articuladas con el sector productivo. Nuevos   programas de posgrado alineados con el Distrito CTI. Incremento medible  de docentes de tiempo   completo con perfil investigador.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  12    Formar    ·   Servir   ·   Cuidar  en  esta  línea.      Formar  es  acompañar  procesos,  reconocer  la   diversidad de trayectorias y garantizar que la formación sea pertinente para la vida, el trabajo y la   ciudadanía. Servir es poner esa oferta formativa al alcance de quienes más la necesitan, ampliando   el  acceso  s in  sacrificar  la  calidad.  Cuidar  es  velar  por  la  permanencia  del  estudiante  y  por  las   condiciones que permitan al docente enseñar e investigar con dignidad.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  13    LÍNEA ESTRATÉGICA 2    Conocimiento, innovación y compromiso con el territorio    Objetivo estratégico:    Posicionar a Pascual Bravo como actor estratégico en la generación de conocimiento y soluciones   con  impacto  social,  ambiental  y  económico  para  Medellín,  Antioquia  y  la  región,  articulando  la   investigación,  la  extensión,  la  innovación  y  el  emprendimiento  co n  las  agendas  de  desarrollo   sostenible del territorio.    Antioquia aporta el 14,5 % del PIB nacional, con una estructura diversificada donde los servicios   financieros y empresariales representan el 26 %, el comercio y transporte el 22 % y la industria   manufacturera el 17 % ¹³ . La economía creció 1,6 % en 2024 y s e proyecta en 2,7 % para 2025 ¹⁴ .   Sin embargo, la informalidad laboral ronda el 38,4 %, el desempleo juvenil se ubicó en 19,7 % y la   pobreza monetaria alcanza al 24,7 % de la población ¹⁵ . El Plan Plurianual de Inversiones asigna   $8,6  billones  al  componente    de  educación  y  cultura  para  2024 – 2027,  y  el  programa  de  CTeI   contempla $4.091 millones para transferencia universidad - empresa ¹⁶ .    ¹³  DANE, Cuentas Departamentales, 2024.    ¹⁴  DANE; Marco Fiscal de Mediano Plazo 2025, Ministerio de Hacienda y Crédito Público.    ¹⁵  DANE, GEIH 2024; Informe de Calidad de Vida de Antioquia, 2024.    ¹⁶  Gobernación de Antioquia, Plan Plurianual de Inversiones 2024 – 2027, Ordenanza 18 de 2024.    Prioridades del cuatrienio en esta línea:    (i) Consolidar la investigación aplicada con énfasis en inteligencia artificial e innovación   educativa. (ii) Crear espacios de co - creación con el sector productivo que generen valor   compartido. (iii) Posicionar la propiedad intelectual y la transferencia t ecnológica como   indicadores estratégicos.    Medellín se consolida como uno de los ecosistemas de emprendimiento más sólidos de América   Latina,  con  63  puntos  en  el  Índice  de  Condiciones  para  el  Emprendimiento  Dinámico  (GEIAL,   2025) ¹⁷ . El Fondo Distrital de CTI ejecutó $104.278 millones en 2024 ¹⁸ , y l a ciudad cuenta con   más de $125.500 millones asignados para CTI en 2025. Los desafíos persisten: brechas en acceso   a  financiamiento,  necesidad  de  fortalecer  redes  internacionales  de  investigación  y  urgencia  de   potenciar sectores como energías limpias, tecn ologías verdes e industrias creativas y digitales.    ¹⁷  GEIAL, Reporte Comparado 2025: Emprendimiento dinámico en América Latina, diciembre de 2025.    ¹⁸  Concejo Distrital de Medellín, informe de seguimiento al Sistema Distrital CTI, abril de 2025.    Pascual  Bravo  tiene  la  capacidad  de  aportar  respuestas  que  integren  ingeniería,  tecnología,   diseño, creatividad y sensibilidad social. Como señalaron Autor, Mindell y Reynolds en The Work   of  the  Future  (MIT  Press,  2022),  el  reto  no  es  resistirse  al  cambio    tecnológico,  sino  construir   instituciones capaces de garantizar que ese cambio beneficie a las mayorías ¹⁹ . La Institución debe  \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  14    profundizar el humanismo al tiempo que desarrolla cambios tecnológicos: una mezcla virtuosa y   complementaria.    ¹⁹  Autor, D., Mindell, D. y Reynolds, E. (2022). The Work of the Future. MIT Press.    La sostenibilidad atraviesa esta línea en todas sus dimensiones: ambiental, mediante el impulso   a proyectos en energías limpias y tecnologías verdes; económica, a través de la generación de valor   para  el  sector  productivo  y  la  diversificación  de  ingresos  i nstitucionales;  y  social,  mediante  el   impacto directo en las comunidades que sirve la Institución. Esta línea articula: investigación e   innovación;  extensión  y  proyección  social;  relación  universidad – empresa – Estado;   emprendimiento; e internacionalización c on sentido territorial.    »  ¿Qué valor agrega esta línea al estudiante?    Acceso a experiencias reales de investigación, práctica y emprendimiento, y mayores capacidades   para generar impacto en su entorno al egresar.    »  ¿Qué valor agrega al profesor?    Acceso a proyectos colaborativos, financiación, movilidad y condiciones para publicar y transferir   conocimiento.    Propuestas concretas:    Investigación e inteligencia artificial    5. Investigación aplicada e inteligencia artificial:  redefinición del propósito y alcance   de la Vicerrectoría de Investigación e Innovación en su dimensión misional, con énfasis en   innovación educativa y soluciones con impacto, incorporando un área dedicada a la   investigación con IA y tecnologías emergentes.    Relación con el sector productivo y propiedad intelectual    6. Formación y diálogo con el sector productivo:  creación de la Escuela Empresarial   del Pascual Bravo y de la Escuela de Artes y Oficios: espacios de co - creación con   empresarios, emprendimiento e innovación, junto con la recuperación y proyección de   saberes técnicos y artísticos tradicionales con enfoque   contemporáneo.    7. Conocimiento que se protege y se comparte:  impulso a patentes, registros de   propiedad intelectual, publicaciones indexadas y transferencia tecnológica como indicadores   de impacto institucional.         \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  15    Ecosistema CTI y rutas globales    8. Articulación con el ecosistema de innovación:  articulación estratégica con Ruta N,   el Distrito CTI y las mesas técnicas del ecosistema CTI+E para posicionar a Pascual Bravo   como socio clave en conocimiento con impacto social y ambiental.    La  visión  2030  de  Pascual  Bravo  la  proyecta  como  referente  nacional  e  internacional.  Esa   proyección no se logra solo con convenios firmados: exige una internacionalización integral que   atraviese la formación, la investigación, la gestión y la cultura insti tucional. Para una institución   pública  que  sirve  a  sectores  populares,  internacionalizarse  no  es  un  lujo:  es  la  vía  para  que  sus   estudiantes accedan a las redes de conocimiento que definen el presente y el futuro del trabajo, la   tecnología  y  la  innovación.     Experiencias  como  la  articulación  con  la  Universidad  de  Córdoba   (España), la pertenencia a la RCI y las alianzas con Ruta N son puntos de partida que esta rectoría   se propone profundizar y ampliar.    Esta  propuesta  concibe  la  internacionalización  en  cinco  rutas  complementarias,  adaptadas  a  la   naturaleza y las capacidades de Pascual Bravo:    Ruta  académica:     integración  de  perspectiva  global  en  los  currículos,  asignaturas  en  inglés,   microcredenciales  internacionales,  movilidad  presencial  y  virtual  — priorizando  formatos   accesibles  como  semestres  espejo,  aulas  globales  y  experiencias  virtuales  colaborativas — ,  y    fortalecimiento de la formación en idiomas.    Ruta  de  investigación  y  creación:   participación  activa  en  redes  internacionales  de   colaboración  científica  y  tecnológica,  proyectos  conjuntos  con  universidades  extranjeras,   copublicaciones, ciencia abierta y circulación del conocimiento generado en la Institución.    Ruta  de  ciudadanía  global:     formación  de  estudiantes  y  docentes  con  mentalidad  global,   capacidad intercultural y responsabilidad ética, que comprendan su pertenencia a una comunidad   humana común y puedan conectar lo local con lo internacional.    Ruta  de  acogida  y  acompañamiento:     servicios  de  orientación,  bienestar  y  apoyo  para   estudiantes  y  profesores  que  participen  en  experiencias  internacionales    — tanto  quienes  salen   como quienes llegan — , garantizando experiencias seguras, enriquecedoras y accesibles.    Ruta  de  gestión  y  sostenibilidad:     consolidación  de  la  estructura  institucional,  los  sistemas   de  información,  la  gestión  de  alianzas  y  la  financiación  de  largo  plazo  que  permitan  que  la   internacionalización sea un proceso estratégico continuo, no una actividad aislada.    9. Internacionalización con sentido territorial:  articulación de las cinco rutas de   internacionalización (académica, investigación, ciudadanía global, acogida y gestión) para   conectar a la comunidad pascualina con redes globales de conocimiento, cooperación y   aprendizaje, con movilidad presencial y virtu al, currículos con perspectiva global y alianzas   estratégicas, sin perder el anclaje al territorio que da sentido a la formación.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  16    Resultados esperados a 2028:    Laboratorio de innovación educativa con IA en funcionamiento. Escuela Empresarial y Escuela de   Artes y Oficios activas. Incremento de patentes, publicaciones indexadas y contratos de   transferencia tecnológica. Al menos cinco alianzas internacionales activa s con proyectos   conjuntos. Programa de movilidad virtual y presencial en operación. Currículos con componentes   internacionalizados en todas las facultades.    Formar  ·  Servir  ·  Cuidar en esta línea.   Formar es desarrollar capacidades de investigación,   emprendimiento y pensamiento crítico en estudiantes y docentes. Servir es poner la inteligencia   institucional al servicio del desarrollo sostenible del territorio, con ética y responsabilidad social.   Cui dar es proteger el conocimiento generado, reconocer la autoría y garantizar que la innovación   tenga sentido humano.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  17    LÍNEA ESTRATÉGICA 3    Gobernanza eficiente, bienestar y sostenibilidad institucional    Objetivo estratégico:    Fortalecer  la  estructura  de  gobierno  y  gestión  institucional  para  que  sea  más  eficiente,   transparente  y  orientada  al  bienestar  de  toda  la  comunidad  académica,  garantizando  las   condiciones organizacionales, financieras y ambientales necesarias para la soste nibilidad de largo   plazo y la renovación de la Acreditación Institucional en Alta Calidad.    A nivel nacional, el déficit fiscal se ubica en 7,1 % del PIB con activación de la cláusula de escape   de la regla fiscal, y la deuda pública alcanzará un pico de 63,8 % del PIB en 2027 ²⁰ . En el ámbito   departamental,  la  inversión  en  transformación  digital  e ducativa  alcanzó  $10.360  millones  en   2024, y en infraestructura se ejecutaron $56 mil millones más $135 mil millones vía créditos del   IDEA ²¹ . La conectividad muestra avances y retos: Antioquia tiene 25 conexiones fijas por cada   100  habitantes  y  lidera  la  v elocidad  de  descarga  nacional  con  320  Mbps,  pero  la  brecha   subregional es enorme: 24,3 % de cobertura en el Valle de Aburrá frente a 5,9 % en Occidente ²² .   El 40 % de los hogares antioqueños no tiene computador; en zonas rurales, el 88 % ²³ .    ²⁰  Marco Fiscal de Mediano Plazo 2025, Ministerio de Hacienda y Crédito Público.    ²¹  Secretaría de Educación de Antioquia; Informe de Calidad de Vida de Antioquia, 2024; IDEA.    ²²  MinTIC, 2024; Consejo Territorial de Planeación de Antioquia, Perfiles Regionales, 2021.    ²³  DANE, Encuesta de Tecnologías de la Información y las Comunicaciones en Hogares (ENTIC), 2024.    Prioridades del cuatrienio en esta línea:    (i) Liderar exitosamente la renovación de la Acreditación Institucional en Alta Calidad   (vencimiento junio de 2028). (ii) Transformar digitalmente los procesos administrativos con un   modelo de gobierno de datos. (iii) Implementar un modelo de gestión del t alento humano basado   en bienestar, flexibilidad y corresponsabilidad.    Esta línea parte del reconocimiento de que el crecimiento de Pascual Bravo ha generado nudos   que requieren atención explícita: tiempos de respuesta administrativa que no siempre acompañan   el ritmo académico, fragmentación en la gestión de la investigación  entre distintas instancias, y   una rigidez en algunos procesos curriculares y laborales que limita la capacidad de adaptación.   Nombrar  estos  nudos  no  es  descalificar  lo  construido;  es  reconocer  con  honestidad  lo  que  se   necesita transformar para que la Insti tución funcione a la altura de su complejidad actual.    El bienestar institucional se entiende aquí en sentido amplio: no es asistencialismo, sino diseño   organizacional inteligente. Concretamente, esto significa mesas de escucha periódicas con todos   los estamentos, mecanismos de evaluación del clima organizacio nal con indicadores específicos,   y una política de bienestar que integre salud mental, desarrollo profesional y condiciones dignas   de trabajo.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  18    Un compromiso central será liderar la renovación de la Acreditación Institucional en Alta Calidad,   cuyo vencimiento se da en junio de 2028. Los lineamientos del Acuerdo 02 de 2020 del CESU,   actualizados  por  el  Acuerdo  01  de  2025 ²⁴ ,  serán  el  referente.  Esta     línea  articula:  planeación   institucional;  gestión  administrativa  y  financiera;  talento  humano;  bienestar  institucional;   aseguramiento de la calidad; e infraestructura y sostenibilidad.    ²⁴  Acuerdo 01 de 2025 del CESU, «Por el cual se actualiza el Modelo de Acreditación en Alta Calidad», Diario   Oficial No. 53.131 del 28 de mayo de 2025.    »  ¿Qué valor agrega esta línea al estudiante?    Procesos claros en lugar de laberintos administrativos. Una experiencia universitaria donde los   trámites  no  obstaculizan  el  aprendizaje  y  donde  el  bienestar  es  una  condición  concreta,  no  un   discurso.    »  ¿Qué valor agrega al profesor?    Condiciones  dignas,  claridad  en  los  procesos  de  evaluación  y  promoción,  y  una  gestión  que   comprenda la especificidad del trabajo académico.    »  ¿Qué valor agrego yo como rectora?    Once  años  de  experiencia  en  la  vicerrectoría  administrativa  y  financiera  me  han  dado   conocimiento  profundo  de  la  estructura  institucional,  sus  fortalezas  y  sus  áreas  de  mejora.   Conozco los procesos desde adentro y puedo liderarlos hacia una mayor eficienci a.    Propuestas concretas:    Calidad y aseguramiento institucional    10. Calidad, innovación y ecosistema digital:  fortalecimiento de la Vicerrectoría de   Investigación e Innovación en su dimensión de aseguramiento de la calidad, incorporando   un ecosistema digital que soporte la autoevaluación, la gestión del conocimiento y la toma de   decisiones. (Nota: la dimensión mis ional de la Vicerrectoría  — investigación aplicada e IA —    se desarrolla en la propuesta 5 de la Línea 2; aquí se fortalece su función de aseguramiento y   su coordinación con las demás instancias de calidad.)    11. Decisiones basadas en evidencia:  implementación de tableros de gestión con   indicadores estratégicos visibles para toda la comunidad, alineados con los factores de   acreditación, y mecanismos de rendición de cuentas que fortalezcan la transparencia y la   confianza institucional.         \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  19    Talento humano y transformación digital    12. Fortalecimiento del cuerpo docente:  plan de ampliación estratégica de la planta   docente de tiempo completo, con criterios vinculados a las necesidades de acreditación de   programas, acompañado de un programa de desarrollo profesoral.    13. Transformación digital con sentido:  programa de transformación digital de los   procesos administrativos e institucionales, con procesos más ágiles, mejor experiencia del   estudiante y del docente, y un modelo de gobierno de datos que soporte la planeación   estratégica.    14. Gestión del talento humano y cultura del cuidado:  diseño de un modelo de   gestión del talento humano que promueva la flexibilidad laboral, el bienestar integral y la   corresponsabilidad, reconociendo que el personal administrativo y docente de cátedra son   actores esenciales de la vida institucional.    Resultados esperados a 2028:    Renovación exitosa de la Acreditación Institucional en Alta Calidad. Tableros de gestión operando   con datos en tiempo real. Reducción medible de tiempos de respuesta administrativa. Modelo de   bienestar y talento humano implementado con indicadores de clima   organizacional.    Formar    ·   Servir   ·   Cuidar  en  esta  línea.      Formar  es  desarrollar  capacidades  de  gestión,   liderazgo  y  autonomía  en  los  equipos  de  trabajo.  Servir  es  garantizar  que  la  estructura   institucional  esté  al  servicio  de  lo  académico  y  no  al  revés.  Cuidar  es  hacer  que  la  Institución   funcione  mejor  para  todo s:  condiciones  dignas,  procesos  claros,  sostenibilidad  financiera  y   ambiental, y una cultura organizacional basada en la confianza.    Articulación de las tres líneas    Estas tres líneas no operan de manera independiente. No hay trayectorias formativas sólidas sin   una  gobernanza  eficiente  que  las  sostenga;  no  hay  conocimiento  con  impacto  sin  formación   pertinente y continua; no hay bienestar institucional sin un propósito  claro de servicio. La calidad   y  la  sostenibilidad  las  atraviesan  transversalmente.  Para  el  estudiante  y  para  el  profesor,  el   resultado  es  una  institución  que  funciona  como  un  todo:  donde  la  formación  es  pertinente,  la   investigación tiene impacto, la gestió n es ágil y el bienestar es tangible.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  20    PROPÓSITO Y ESTRATEGIA    El porqué de esta propuesta rectoral    Toda institución atraviesa momentos en los que debe detenerse a pensar no solo en lo que hace,   sino en cómo y por qué lo hace. Pascual Bravo se encuentra en uno de esos momentos. No porque   haya  fallado,  sino  porque  ha  crecido.  Y  el  crecimiento  obliga  a  rev isar  estructuras,  prácticas  y   decisiones.    El trabajo realizado por la administración actual, de la cual he sido parte, sentó las bases que hoy   permiten proyectar un nuevo momento. No se empieza de cero: se construye sobre lo construido.   Pero la complejidad alcanzada exige dar un paso adicional. Pa scual Bravo es hoy una institución   con más actores, mayor presencia territorial y una relación más estrecha con el sector productivo.   Lo  que  se  requiere  es  pasar  del  hacer  al  pensar  el  hacer,  del  resolver  al  prever,  del  cumplir  al   construir  sentido.  Planif icar  y  responder  ágilmente  no  son  conceptos  opuestos:  la  planeación   estratégica es justamente lo que permite respuestas oportunas, coherentes y con sentido.    Una propuesta centrada en las personas    El  centro  de  esta  propuesta  no  son  los  indicadores,  aunque  se  los  valore;  no  son  los   procedimientos,  aunque  se  los  respete.  El  centro  son  las  personas.  Los  estudiantes  requieren   trayectorias  formativas  claras,  procesos  administrativos  ágiles  y  formación  qu e  les  permita   construir  proyecto  de  vida.  Los  docentes  e  investigadores  necesitan  condiciones  claras,   reconocimiento  de  su  saber  y  apoyo  a  la  investigación.  Los  egresados  demandan  actualización,   redes y oportunidades. Los administrativos requieren una estr uctura que valore su trabajo.    Una mirada humanista, tecnológica y global    El carácter tecnológico de Pascual Bravo se complementa con una visión humanista: la tecnología   no es un fin en sí mismo, sino un medio para transformar realidades. Formar técnicamente sin   formar humanamente es insuficiente, y viceversa. Es clave hablar de   una universidad conectada   con  el  mundo:  articulada  con  el  sector  productivo,  en  diálogo  con  universidades  de  referencia   internacional y comprometida con las agendas globales de desarrollo sostenible. Una universidad   que forme ciudadanos con mentalidad glo bal y compromiso local.    El Foro Económico Mundial ha señalado que la inteligencia artificial podría superar en pocos años   muchas capacidades cognitivas humanas, lo que obliga a las instituciones educativas a repensar   qué enseñan, cómo lo hacen y para qué. Pascual Bravo no puede p ensarse de manera aislada: su   proyecto  educativo  debe  ir  de  la  mano  con  las  políticas  públicas,  los  sectores  productivos  y  las   agendas globales.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  21    Un porqué que se convierte en responsabilidad    La renovación de la Acreditación Institucional en Alta Calidad durante este periodo rectoral es un   compromiso ineludible que exige que la calidad sea el eje articulador de todas las decisiones. La   Institución está lista para dar un paso más. Porque su gent e lo merece. Porque la ciudad, la región   y el país necesitan una institución que forme, sirva y cuide el bienestar de su comunidad.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  22    EL POR QUÉ YO    Trayectoria, legitimidad y capacidad para liderar este momento    Mi historia personal está ligada a la educación pública. Nací en Aranjuez, un barrio popular de   Medellín,  y  me  formé  en  la  Universidad  de  Antioquia.  Soy  administradora  de  empresas,   especialista  en  docencia  universitaria  y  magíster  en  educación.  Esa  formaci ón  responde  a  una   convicción: la educación necesita ser comprendida y, al mismo tiempo, bien gestionada.    He  trabajado  en  diferentes  universidades  públicas  y  privadas    — Universidad  de  Antioquia,   Universidad de San Buenaventura, Fundación Universitaria Bellas Artes —   y ejercido la docencia   en  múltiples  instituciones,  incluida  la  docencia  de  posgrado  en  la  Univers idad  del  Pacífico  del   Ecuador y la Universidad Europea del Principado de Andorra.    Mi  vínculo  con  Pascual  Bravo  ha  sido  profundo  y  continuo.  Cuatro  años  como  directora  de   extensión y once como vicerrectora administrativa y financiera. He sido parte de la administración   que logró la Acreditación Institucional en Alta Calidad, fortaleció l a planta docente, consolidó la   infraestructura del campus y posicionó a la Institución en el ecosistema CTI de Medellín. Conozco   la Institución tanto en su funcionamiento cotidiano como en sus tensiones.    Este es el por qué yo: porque puedo articular la historia de la Institución con su futuro; porque   puedo integrar lo académico con lo administrativo sin sacrificar ninguno de los dos; porque tengo   la  experiencia  para  liderar  la  renovación  de  la  acreditación ;  y  porque  creo  profundamente  que   liderar  hoy  Pascual  Bravo  implica  formar,  servir  y  cuidar,  con  coherencia,  responsabilidad  y   humanidad. No desde la ruptura, sino desde la continuidad consciente; no desde la improvisación,   sino desde la planeación.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  23    CÓMO LO VAMOS A HACER    De la gestión reactiva a la gestión anticipativa    El  desafío  central  de  esta  rectoría  no  es  proponer  más  iniciativas,  sino  hacer  que  la  Institución   funcione  de  manera  acorde  con  su  complejidad  actual.  El  patrimonio  acumulado  — la   acreditación,  la  ampliación  de  la  oferta  académica,  el  fortalecimiento  de  la    planta  docente,  la   infraestructura —     es  la  base.  Pero  el  crecimiento  acelerado  también  ha  generado  dinámicas  que   requieren ajuste explícito.    Principios operativos de esta rectoría    Claridad de rumbo: cada decisión tendrá un porqué explícito, alineado con las líneas estratégicas   y con el PEI. Estructuras al servicio del propósito: los procesos administrativos acompañarán lo   académico, no al revés. Capacidad de anticipación: la Institu ción leerá el contexto y se preparará   antes de que los problemas se conviertan en crisis.    Planeación estratégica con sentido humano    La  planeación  será  una  práctica  viva:  integrará  los  planes  de  desarrollo  institucional  con  los   territoriales  y  nacionales;  articulará  las  tres  líneas  estratégicas  en  decisiones  concretas;   reconocerá  los  ritmos  y  capacidades  reales  de  la  comunidad  académica ;  y  evaluará,  ajustará  y   aprenderá de manera permanente.    Gobernanza participativa    Responder mejor no es concentrar decisiones, sino tomarlas con otros. Esto implica mecanismos   específicos: mesas de trabajo mixtas por línea estratégica, consultas periódicas con egresados y   sector  productivo,  y  espacios  de  construcción  colectiva  del  plan    de  desarrollo  institucional.   Docentes,  estudiantes,  egresados,  personal  administrativo  y  aliados  estratégicos  serán   reconocidos como actores corresponsables.    Gestión ágil y orientada al servicio    Esta rectoría se compromete a revisar procedimientos, tiempos y flujos de decisión para que los   procesos sean más claros, simples y oportunos. La agilidad no significa improvisación; significa   decidir a tiempo, con criterios claros y con responsabilidad.    El bienestar como principio de gestión    Cuidar no es una consigna; es una decisión de gestión que se traduce en mediciones concretas:   encuestas  de  clima  organizacional  con  frecuencia  semestral,  comités  de  bienestar  con  \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  24    representación  de  todos  los  estamentos,  políticas  de  salud  mental  y  condiciones  dignas  para  el   trabajo  académico  y  administrativo.  Una  institución  que  cuida  el  bienestar  de  su  gente  cuida   mejor su entorno y su futuro.      \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  25    MARCO CONCEPTUAL    Educación, tecnología, humanidad y sentido público    Esta propuesta se sustenta en una convicción central: la educación no es un sistema cerrado, sino   una  práctica  viva,  situada  en  un  contexto  histórico,  social  y  cultural  específico.  El  marco   conceptual no busca imponer un modelo único, sino articular mirada s que permiten comprender   la complejidad del presente educativo, en coherencia con el PEI y la identidad institucional.       Complejidad y complementariedad de saberes: Edgar Morin    Edgar  Morin  nos  recuerda  que  educar  no  es  fragmentar  el  conocimiento,  sino  tejer  relaciones   entre  saberes.  Desde  Morin,  el  carácter  tecnológico  de  Pascual  Bravo  no  se  reduce  a  lo   instrumental:  la  tecnología  se  entiende  como  un  objeto  de  estudio  que  exige  c ontexto,  ética  y   comprensión de sus impactos humanos y sociales.         \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  26    Educación, acción y responsabilidad en lo público: Hannah Arendt    Hannah  Arendt  aporta  una  mirada  sobre  la  educación  como  acto  de  responsabilidad  hacia  el   mundo. Educar, para Arendt, es introducir a las nuevas generaciones en un mundo del cual serán   responsables. Pascual Bravo forma ciudadanos capaces de actuar, decidir  y asumir consecuencias.    Capacidades humanas, dignidad y justicia educativa: Martha Nussbaum    Martha  Nussbaum  sitúa  la  educación  en  el  centro  del  desarrollo  humano.  El  objetivo  no  es   únicamente  la  empleabilidad,  sino  la  posibilidad  real  de  que  las  personas  desarrollen  una  vida   digna, autónoma y con sentido. En una institución que ha servido históri camente a poblaciones   de menores oportunidades, este enfoque refuerza que la calidad se mide también por su capacidad   para reducir desigualdades.    El valor del trabajo, la técnica y el hacer con sentido: Richard Sennett    Richard  Sennett  aporta  una  reflexión  sobre  el  trabajo,  la  técnica  y  el  oficio.  La  formación   tecnológica encuentra en Sennett una base que reivindica el saber hacer, el aprendizaje situado y   el cuidado del detalle.    Educación crítica, autonomía y sentido de límite: Iván Illich    Iván Illich introduce una reflexión sobre los límites de la institucionalización de la educación. Esta   propuesta recoge la invitación a flexibilizar trayectorias, reconocer aprendizajes diversos y valorar   el aprendizaje a lo largo de la vida.    Formación integral y desarrollo humano: Rudolf Steiner    Rudolf  Steiner  plantea  una  educación  que  integra  la  mente,  el  cuerpo  y  la  sensibilidad.  La   educación no es solo cognitiva, sino también emocional, social y ética.    Educación técnica, trayectorias y trabajo: Moodie, Wheelahan y Labbé    Los  estudios  contemporáneos  sobre  educación  técnica  subrayan  la  importancia  de  construir   trayectorias  formativas  articuladas.  El  objeto  tecnológico  se  enriquece  al  articularse  con  la   formación profesional, la posgradual y el aprendizaje permanente.    Currículo, coherencia y sentido: Jan Van den Akker    Jan  Van  den  Akker  plantea  la  coherencia  entre  lo  que  se  diseña,  lo  que  se  enseña  y  lo  que   realmente se aprende. Una rectoría comprometida con la calidad no puede desentenderse de estas   coherencias.   \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  27    Educación como bien público: Unesco, OCDE, Banco Mundial, BID y Foro   Económico Mundial    Los organismos internacionales coinciden: la educación es un bien público y un factor clave para   el  desarrollo  sostenible.  El  informe  de  la  Unesco  Reimaginar  juntos  nuestros  futuros  (2021)   propone  repensar  la  educación  con  la  vista  puesta  en  2050 ²⁵ .  The  Wo rk  of  the  Future  (Autor,   Mindell y Reynolds, MIT Press, 2022) analiza cómo las instituciones educativas deben preparar   a  las  personas  para  un  mundo  transformado  por  la  automatización.  El  marco  regulatorio   colombiano, particularmente el Acuerdo 02 de 2020 y   el Acuerdo 01 de 2025 del CESU, establece   los lineamientos que orientan esta propuesta.    ²⁵  UNESCO (2021). Reimaginar juntos nuestros futuros. Comisión Internacional sobre los Futuros de la Educación.         \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  28    RUTA DE IMPLEMENTACIÓN    Gobernar con tiempos claros: 100 días, un año y un horizonte de   rectoría    Una propuesta rectoral responsable no solo define el rumbo, sino que asume tiempos, reconoce   capacidades  institucionales  y  establece  prioridades.  Esta  ruta  es  una  secuencia  lógica  de   decisiones,  coherente  con  las  tres  líneas  estratégicas  y  con  el  calendari o  de  renovación  de  la   Acreditación Institucional. Dentro de los primeros meses se iniciará la construcción participativa   del nuevo plan de desarrollo institucional.    I. Los primeros 100 días: Ordenar, escuchar y sentar bases    Alinear los cimientos con el propósito, construyendo sobre lo existente. Las prioridades: revisión   del  mapa  de  procesos  y  flujos  de  decisión;  escucha  activa  y  diálogo  estructurado  con  todos  los   estamentos; alineación estratégica con el PEI y la visión 2030 ; e instalación del enfoque Formar ·   Servir  ·  Cuidar  como  criterio  para  priorizar  decisiones.  En  este  primer  momento  se  busca   credibilidad, claridad y confianza.    II. El primer año: Implementar, articular y consolidar    Orientado  a  hacer  visibles  los  cambios  estructurales.  Acciones  clave:  ajustes  en  gobernanza  y   procesos;  fortalecimiento  de  la  relación  con  el  ecosistema  de  innovación;  estrategia  integral  de   bienestar;  puesta  en  marcha  de  las  iniciativas  en  IA  e  innovación     educativa;  cronograma  de  la   preparación  para  la  renovación  de  la  acreditación,  activando  procesos  de  autoevaluación.  Se   impulsará la construcción participativa del plan de desarrollo institucional. Queremos que en el   día a día se perciba mayor claridad, o portunidad y articulación.    III. Horizonte de la rectoría (cuatro años): Proyectar y dejar   capacidad instalada    Un  proceso  de  maduración  en  el  que  las  transformaciones  no  dependan  de  personas  sino  de   estructuras,  culturas  y  prácticas  consolidadas.  Se  buscará:  consolidar  trayectorias  formativas   integradas;  posicionar  a  Pascual  Bravo  como  referente  en  conocimiento  e  i nnovación;  lograr  la   renovación de la Acreditación Institucional en Alta Calidad; instalar una gobernanza eficiente y   sostenible; y dejar capacidad instalada, con equipos fortalecidos, cultura de planeación y liderazgo   compartido.    Esta  ruta  no  promete  soluciones  inmediatas  a  todos  los  problemas,  pero  sí  un  camino  claro,   responsable y humano.     \nFormar  ·  Servir  ·  Cuidar  —   Propuesta Rectoral 2026 – 2030    Liliana Patricia Restrepo Villa · I.U. Pascual Bravo · Página  29    FORMAR. SERVIR. CUIDAR.    Hacemos  todos  parte  de  un  enorme  tejido  social  que  constituye  la  humanidad  y  su  entorno   planetario  y  cósmico.  Puede  pensarse  que  la  labor  de  una  institución  educativa  como  Pascual   Bravo se limita a preparar profesionales. Pero nuestra misión nos llama a ir   más allá.    Formamos,  servimos  y  cuidamos  el  bienestar  de  nuestros  estudiantes,  egresados,  docentes  y   personal administrativo, porque comprendemos que, al hacerlo con responsabilidad, sensibilidad   y  esmero,  formamos,  servimos  y  cuidamos  a  un  entorno  mucho  mayor:  Medel lín,  Antioquia,   Colombia  y  esta  gran  familia  humana  que  solo  evoluciona  cuando  entiende  el  poder  de  lo   colectivo.    El avance de uno es el avance de todos. Por eso mi compromiso será con las personas, que son el   corazón de la Institución. Lideraré una rectoría que forme con calidad, que incentive el servicio al   territorio  y  que  procure  el  bienestar  de  todos,  generando  e xcelencia  académica,  eficiencia   organizacional  y  resultados  concretos.  Una  rectoría  que,  sobre  la  base  de  lo  construido,  lleve  a   Pascual Bravo hacia la materialización plena de su misión, su visión 2030 y su compromiso con   la alta calidad.    Porque  ahí,  y  solo  ahí,  se  juega  el  futuro  de  La  Institución  Universitaria  Pascual   Bravo.   \n";
+    const PDF_NAME = "20.pdf";
+    const CHATBOT_THEME = "Rectora";
+    const PDF2_TEXT_EMBEDDED = "";
+    const PDF2_NAME_EMBEDDED = "";
+    const MODEL = "gemini-search";
+    const PROPOSED_QUESTIONS = ["¿Cuál es el lema principal de la Propuesta Rectoral 2026-2030 y qué significan sus componentes?","¿Cuáles son las tres líneas estratégicas de impacto que articulan la propuesta rectoral y en qué consisten brevemente?","¿Cómo ha evolucionado la Institución Universitaria Pascual Bravo en términos de su oferta académica y su comunidad, según el documento?","¿De qué manera la propuesta rectoral de Liliana Patricia Restrepo Villa busca abordar la transformación digital y el talento humano?","¿Qué rol juega la investigación y la inteligencia artificial dentro de la Línea Estratégica 2, y cómo se propone potenciarla?","¿Cómo se articula la propuesta de Pascual Bravo con el sector productivo y la propiedad intelectual?","¿Qué estrategias se plantean para la internacionalización de la institución y por qué se considera un aspecto crucial?","Explica la importancia de la 'Gobernanza eficiente, bienestar y sostenibilidad institucional' como línea estratégica.","¿Cómo planea la rectoría pasar de una 'gestión reactiva a una gestión anticipativa' y cuáles son los principios operativos propuestos?","¿Cuál es la visión de la rectoría sobre el papel de la tecnología y la formación humanista en la educación superior actual?","¿Qué se espera lograr en los primeros 100 días de la rectoría, según la ruta de implementación descrita?","¿Cómo se articula la renovación de la Acreditación Institucional en Alta Calidad con los objetivos generales de la propuesta rectoral?"];
+    const INITIAL_PALETTE = {"primaryColor":"#305ee8","secondaryColor":"#597eed","bgColor":"#ffffff","textColor":"#111827","cardBgColor":"#ffffff","cardBorderColor":"#d1d5db","inputBgColor":"#ffffff","inputBorderColor":"#cbd5e1","chatBubbleBotBg":"#f3f4f6","chatBubbleBotText":"#111827","chatBubbleUserBg":"#305ee8","chatBubbleUserText":"#f8fafc","headerBorderColor":"#d1d5db","systemMessageBg":"#fef3c7","systemMessageText":"#92400e"};
+
+    let pdf2Text = PDF2_TEXT_EMBEDDED;
+    let pdf2Name = PDF2_NAME_EMBEDDED;
+    let isProcessing = false;
+    let conversationHistory = [];
+
+    const BACKEND_BASE = 'https://node.proyectodescartes.org';
+    function extractTextFromBackendResponse(raw) {
+        if (raw == null) return '';
+        const s = String(raw).trim();
+        if (!s) return '';
+        try {
+            const j = JSON.parse(s);
+            if (Array.isArray(j)) return JSON.stringify(j);
+            if (j && typeof j === 'object') {
+                const c = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+                if (typeof c === 'string') return c.trim();
+                if (typeof j.content === 'string') return j.content.trim();
+                if (typeof j.text === 'string') return j.text.trim();
+            }
+            if (typeof j === 'string') return j;
+        } catch (e) {}
+        return s;
+    }
+    async function postBackendText(payload) {
+        const body = { model: payload.model || 'openai-fast', prompt: payload.prompt };
+        if (payload.system) body.system = payload.system;
+        if (payload.json) body.json = true;
+        const res = await fetch(BACKEND_BASE + '/api/ia/text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const raw = await res.text();
+        if (!res.ok) throw new Error('Error de API: ' + res.status + ' ' + res.statusText + '. ' + raw.substring(0, 200));
+        return extractTextFromBackendResponse(raw);
+    }
+
+    const chatDisplay = document.getElementById('chat-display');
+    const questionInput = document.getElementById('question-input');
+    const sendButton = document.getElementById('send-button');
+    const sendButtonText = document.getElementById('send-button-text');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const themeBtn = document.getElementById('theme-btn');
+    const paletteBtn = document.getElementById('palette-btn');
+    const pdf2Upload = document.getElementById('pdf2-upload');
+    const pdf2NameDisplay = document.getElementById('pdf2-name');
+    const pdf2StatusDisplay = document.getElementById('pdf2-status');
+    const questionsSelector = document.getElementById('questions-selector');
+
+    function getAvatarUrl(type) {
+        const fallbackSvg = function(letter) {
+            return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#6c757d"/><text x="50" y="68" text-anchor="middle" fill="#fff" font-size="44" font-family="system-ui,sans-serif">' + letter + '</text></svg>');
+        };
+        return type === 'bot' ? fallbackSvg('B') : fallbackSvg('U');
+    }
+
+    PROPOSED_QUESTIONS.forEach(function(q, i) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        const label = q.length > 72 ? q.substring(0, 69) + '...' : q;
+        opt.textContent = label;
+        opt.title = q;
+        questionsSelector.appendChild(opt);
+    });
+    questionsSelector.addEventListener('change', function(e) {
+        const v = e.target.value;
+        if (v !== '') {
+            questionInput.value = PROPOSED_QUESTIONS[Number(v)];
+            questionInput.focus();
+            questionsSelector.value = '';
+        }
+    });
+
+    // Theme and palette
+    let currentTheme = localStorage.getItem('theme') || 'light';
+    let currentPalette = null;
+
+    function hexToRgb(hex) {
+        const normalized = String(hex || '#000000').replace('#', '');
+        const full = normalized.length === 3 ? normalized.split('').map(ch => ch + ch).join('') : normalized;
+        const value = parseInt(full, 16);
+        return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
+    }
+    function rgbToHex(r, g, b) {
+        const toHex = (value) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0');
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
+    function mixColors(colorA, colorB, amount) {
+        const a = hexToRgb(colorA);
+        const b = hexToRgb(colorB);
+        return rgbToHex(a.r + (b.r - a.r) * amount, a.g + (b.g - a.g) * amount, a.b + (b.b - a.b) * amount);
+    }
+    function getLuminance(hex) {
+        const { r, g, b } = hexToRgb(hex);
+        const toLinear = (value) => {
+            const s = value / 255;
+            return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    }
+    function hslToHex(h, s, l) {
+        const hue = ((h % 360) + 360) % 360;
+        const saturation = Math.max(0, Math.min(100, s)) / 100;
+        const lightness = Math.max(0, Math.min(100, l)) / 100;
+        const hueToRgb = (p, q, t) => {
+            let temp = t;
+            if (temp < 0) temp += 1;
+            if (temp > 1) temp -= 1;
+            if (temp < 1 / 6) return p + (q - p) * 6 * temp;
+            if (temp < 1 / 2) return q;
+            if (temp < 2 / 3) return p + (q - p) * (2 / 3 - temp) * 6;
+            return p;
+        };
+        const q = lightness < 0.5 ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
+        const p = 2 * lightness - q;
+        const r = hueToRgb(p, q, hue / 360 + 1 / 3);
+        const g = hueToRgb(p, q, hue / 360);
+        const b = hueToRgb(p, q, hue / 360 - 1 / 3);
+        return rgbToHex(r * 255, g * 255, b * 255);
+    }
+    function getReadableTextColor(bgColor) { return getLuminance(bgColor) > 0.56 ? '#111827' : '#f8fafc'; }
+    function generatePalette() {
+        const hue = Math.floor(Math.random() * 360);
+        const bg = hslToHex(hue, 45 + Math.floor(Math.random() * 20), 16 + Math.floor(Math.random() * 70));
+        const text = getReadableTextColor(bg);
+        const isDark = getLuminance(bg) < 0.5;
+        const accent = hslToHex((hue + 35 + Math.floor(Math.random() * 60)) % 360, 80, isDark ? 55 : 45);
+        const card = isDark ? mixColors(bg, '#ffffff', 0.08) : mixColors(bg, '#000000', 0.05);
+        const border = isDark ? mixColors(card, '#ffffff', 0.18) : mixColors(card, '#000000', 0.12);
+        const input = isDark ? mixColors(card, '#ffffff', 0.07) : mixColors(card, '#000000', 0.04);
+        const inputBorder = isDark ? mixColors(border, '#ffffff', 0.12) : mixColors(border, '#000000', 0.1);
+        const botBg = isDark ? mixColors(bg, '#ffffff', 0.12) : mixColors(bg, '#000000', 0.06);
+        return {
+            bgColor: bg,
+            textColor: text,
+            cardBgColor: card,
+            cardBorderColor: border,
+            inputBgColor: input,
+            inputBorderColor: inputBorder,
+            chatBubbleBotBg: botBg,
+            chatBubbleBotText: text,
+            chatBubbleUserBg: accent,
+            chatBubbleUserText: getReadableTextColor(accent),
+            primaryColor: accent,
+            secondaryColor: isDark ? mixColors(accent, '#ffffff', 0.2) : mixColors(accent, '#000000', 0.2),
+            headerBorderColor: border,
+            systemMessageBg: isDark ? mixColors(bg, '#fde68a', 0.2) : mixColors(bg, '#fde68a', 0.28),
+            systemMessageText: isDark ? '#fef3c7' : '#78350f'
+        };
+    }
+    function buildThemePalette(theme, palette) {
+        const base = palette || {
+            primaryColor: '#2563eb',
+            secondaryColor: '#6b7280',
+            bgColor: '#ffffff',
+            textColor: '#1f2937',
+            cardBgColor: '#ffffff',
+            cardBorderColor: '#d1d5db',
+            inputBgColor: '#ffffff',
+            inputBorderColor: '#cbd5e1',
+            chatBubbleBotBg: '#f3f4f6',
+            chatBubbleBotText: '#1f2937',
+            chatBubbleUserBg: '#2563eb',
+            chatBubbleUserText: '#ffffff',
+            headerBorderColor: '#e5e7eb',
+            systemMessageBg: '#fef3c7',
+            systemMessageText: '#92400e'
+        };
+        const isDark = theme === 'dark';
+        const bgColor = isDark ? mixColors(base.bgColor || '#ffffff', '#000000', 0.72) : '#ffffff';
+        const textColor = getReadableTextColor(bgColor);
+        const cardBgColor = isDark ? mixColors(bgColor, '#ffffff', 0.08) : '#ffffff';
+        const cardBorderColor = isDark ? mixColors(cardBgColor, '#ffffff', 0.16) : '#d1d5db';
+        const inputBgColor = isDark ? mixColors(cardBgColor, '#ffffff', 0.06) : '#ffffff';
+        const inputBorderColor = isDark ? mixColors(cardBorderColor, '#ffffff', 0.12) : '#cbd5e1';
+        const chatBubbleBotBg = isDark ? mixColors(bgColor, '#ffffff', 0.12) : '#f3f4f6';
+        const chatBubbleBotText = textColor;
+        const headerBorderColor = cardBorderColor;
+        const systemMessageBg = isDark ? mixColors(bgColor, '#fde68a', 0.2) : '#fef3c7';
+        const systemMessageText = isDark ? '#fef3c7' : '#92400e';
+        return {
+            ...base,
+            bgColor,
+            textColor,
+            cardBgColor,
+            cardBorderColor,
+            inputBgColor,
+            inputBorderColor,
+            chatBubbleBotBg,
+            chatBubbleBotText,
+            headerBorderColor,
+            systemMessageBg,
+            systemMessageText
+        };
+    }
+    function setPaletteVariables(target, palette) {
+        if (!palette) return;
+        target.style.setProperty('--primary', palette.primaryColor || '#007bff');
+        target.style.setProperty('--secondary', palette.secondaryColor || '#6c757d');
+        target.style.setProperty('--bg', palette.bgColor || '#f8f9fa');
+        target.style.setProperty('--text', palette.textColor || '#343a40');
+        target.style.setProperty('--card', palette.cardBgColor || '#ffffff');
+        target.style.setProperty('--border', palette.cardBorderColor || '#dddddd');
+        target.style.setProperty('--input', palette.inputBgColor || '#ffffff');
+        target.style.setProperty('--iborder', palette.inputBorderColor || '#cccccc');
+        target.style.setProperty('--bot-bg', palette.chatBubbleBotBg || '#e9ecef');
+        target.style.setProperty('--bot-text', palette.chatBubbleBotText || '#343a40');
+        target.style.setProperty('--user-bg', palette.chatBubbleUserBg || '#007bff');
+        target.style.setProperty('--user-text', palette.chatBubbleUserText || '#ffffff');
+        target.style.setProperty('--sys-bg', palette.systemMessageBg || '#fff3cd');
+        target.style.setProperty('--sys-text', palette.systemMessageText || '#856404');
+    }
+    function applyPalette(palette) {
+        currentPalette = palette;
+        applyTheme(currentTheme);
+        localStorage.setItem('downloaded-palette', JSON.stringify(palette));
+    }
+    function applyTheme(t) {
+        currentTheme = t;
+        document.body.classList.toggle('dark-mode', t === 'dark');
+        themeBtn.textContent = t === 'dark' ? '☀️ Tema' : '🌙 Tema';
+        const effectivePalette = buildThemePalette(t, currentPalette);
+        setPaletteVariables(document.body, effectivePalette);
+        setPaletteVariables(document.documentElement, effectivePalette);
+        document.body.style.backgroundColor = effectivePalette.bgColor;
+        document.body.style.color = effectivePalette.textColor;
+        localStorage.setItem('theme', t);
+    }
+    themeBtn.addEventListener('click', () => { const n = currentTheme === 'dark' ? 'light' : 'dark'; applyTheme(n); });
+    paletteBtn.addEventListener('click', () => { applyPalette(generatePalette()); });
+    const savedPalette = JSON.parse(localStorage.getItem('downloaded-palette') || 'null');
+    if (savedPalette) { applyPalette(savedPalette); }
+    else if (INITIAL_PALETTE) { applyPalette(INITIAL_PALETTE); }
+    else { applyPalette(generatePalette()); }
+    applyTheme(currentTheme);
+
+    // Second PDF (embedded or user-loaded)
+    if (pdf2Text) { pdf2NameDisplay.textContent = pdf2Name + ' (incluido)'; pdf2StatusDisplay.textContent = '"' + pdf2Name + '" ya incluido.'; pdf2StatusDisplay.style.color = 'var(--success)'; }
+    pdf2Upload.addEventListener('change', async (ev) => {
+        const file = ev.target.files[0]; if (!file) return;
+        if (!(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+            pdf2StatusDisplay.textContent = 'No es un PDF válido.'; pdf2StatusDisplay.style.color = 'var(--danger)'; return;
+        }
+        pdf2Name = file.name; pdf2NameDisplay.textContent = file.name;
+        pdf2StatusDisplay.textContent = 'Procesando...'; pdf2StatusDisplay.style.color = 'var(--warning)';
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const tc = await page.getTextContent();
+                    tc.items.forEach(item => text += item.str + ' ');
+                    text += '\n';
+                }
+                pdf2Text = text;
+                pdf2StatusDisplay.textContent = '"' + pdf2Name + '" cargado.'; pdf2StatusDisplay.style.color = 'var(--success)';
+                addMsg('Segundo documento "' + pdf2Name + '" listo.', 'system');
+            } catch(err) { pdf2StatusDisplay.textContent = 'Error al procesar.'; pdf2StatusDisplay.style.color = 'var(--danger)'; pdf2Text = ''; }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function dismissThinkingAsSystem(text, asError) {
+        const el = document.getElementById('thinking-msg');
+        if (!el) return;
+        el.className = 'system-message' + (asError ? ' error' : '');
+        el.textContent = text;
+        el.removeAttribute('id');
+    }
+
+    function addMsg(message, sender, isThinking = false) {
+        const el = document.createElement('div');
+        el.classList.add(sender === 'user' ? 'user-message' : sender.includes('system') ? 'system-message' : 'bot-message');
+        if (sender.includes('error')) el.classList.add('error');
+        if (sender === 'bot' && !isThinking) {
+            const processedMessage = message.replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+            const html = marked.parse ? marked.parse(processedMessage) : processedMessage;
+            const botAvatarUrl = getAvatarUrl('bot');
+            el.innerHTML = '<div class="message"><img class="avatar-img" src="' + botAvatarUrl + '" alt=""><div class="message-bubble bot-bubble"><strong>Chatbot:</strong><div class="tex2jax_process" style="margin-top:5px;">' + html + '</div><div style="margin-top:10px;font-size:.8em;color:var(--secondary);font-style:italic;">Modelo: ' + MODEL + '</div></div></div>';
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([el]).catch(err => console.error(err));
+        } else if (sender === 'bot') {
+            const botAvatarUrl = getAvatarUrl('bot');
+            el.innerHTML = '<div class="message"><img class="avatar-img" src="' + botAvatarUrl + '" alt=""><div class="message-bubble bot-bubble"><strong>Chatbot:</strong> <span class="thinking-animation">' + message + '</span></div></div>';
+            el.id = 'thinking-msg';
+        } else if (sender === 'user') {
+            const userAvatarUrl = getAvatarUrl('user');
+            el.innerHTML = '<div class="message user-message"><div class="message-bubble user-bubble"></div><img class="avatar-img" src="' + userAvatarUrl + '" alt=""></div>';
+            el.querySelector('.user-bubble').textContent = message;
+        } else {
+            el.textContent = message;
+        }
+        chatDisplay.appendChild(el); chatDisplay.scrollTop = chatDisplay.scrollHeight;
+    }
+    function updateLastMsg(message) {
+        const el = document.getElementById('thinking-msg');
+        const botAvatarUrl = getAvatarUrl('bot');
+        const processedMessage = message.replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        const html = marked.parse ? marked.parse(processedMessage) : processedMessage;
+        if (el) {
+            el.className = 'bot-message';
+            el.innerHTML = '<div class="message"><img class="avatar-img" src="' + botAvatarUrl + '" alt=""><div class="message-bubble bot-bubble"><strong>Chatbot:</strong><div class="tex2jax_process" style="margin-top:5px;">' + html + '</div><div style="margin-top:10px;font-size:.8em;color:var(--secondary);font-style:italic;">Modelo: ' + MODEL + '</div></div></div>';
+            el.removeAttribute('id');
+            if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([el]).catch(err => console.error(err));
+        } else addMsg(message, 'bot');
+        chatDisplay.scrollTop = chatDisplay.scrollHeight;
+    }
+
+    async function sendQuestion() {
+        const question = questionInput.value.trim();
+        if (!question || isProcessing) return;
+        addMsg(question, 'user'); questionInput.value = '';
+        conversationHistory.push({ role: 'user', content: question });
+        isProcessing = true; sendButton.disabled = true; questionInput.disabled = true;
+        loadingSpinner.style.display = 'inline-block'; sendButtonText.textContent = 'Enviando';
+        addMsg('Pensando...', 'bot', true);
+        const maxLen = 800000;
+        const t1 = PDF_TEXT.length > maxLen ? PDF_TEXT.substring(0, maxLen) + '... (truncado)' : PDF_TEXT;
+        const systemInstructions = 'Eres un asistente que SOLO debe ayudar con preguntas relacionadas con el contenido del/los documento(s) PDF de esta sesión y con el tema del chatbot: «' + CHATBOT_THEME + '». ' +
+            'No respondas temas claramente ajenos (vida personal sin relación, otros libros o materiales no incluidos, programación o tareas arbitrarias no vinculadas al texto, cotilleo, política o entretenimiento sin conexión con el PDF, etc.). ' +
+            'Si la pregunta no guarda relación razonable con el documento ni con ese tema, responde ÚNICAMENTE con UNA línea que empiece exactamente con [FUERA_DE_ALCANCE] seguida de una frase breve en español. ' +
+            'Para preguntas válidas, fundamenta la respuesta en los textos del documento; si falta información en el PDF, dilo con claridad.';
+
+        let prompt = 'Instrucciones del sistema:\n' + systemInstructions + '\n\n';
+        prompt += 'Documento 1 ("' + PDF_NAME + '"): "' + t1 + '"\n\n';
+        if (pdf2Text) {
+            const t2 = pdf2Text.length > maxLen ? pdf2Text.substring(0, maxLen) + '... (truncado)' : pdf2Text;
+            prompt += 'Documento 2 ("' + pdf2Name + '"): "' + t2 + '"\n\n';
+        }
+        prompt += '(Instrucción: Para expresiones matemáticas, utiliza SÓLO el formato $$...$$ para bloque y $...$ para texto en línea.)\n\n';
+
+        // Incluir el historial completo de la conversación para dar contexto al modelo
+        var historyBlock = conversationHistory.slice(0, -1).map(function(turn, index) {
+            var speaker = turn.role === 'user' ? 'Usuario' : 'Asistente';
+            return '[Turno ' + (index + 1) + '] ' + speaker + ': ' + turn.content;
+        }).join('\n\n');
+        if (historyBlock) {
+            prompt += 'Conversación previa (historial del chat):\n' + historyBlock + '\n\n';
+        }
+
+        prompt += 'Pregunta: ' + question + '\n\nRespuesta:';
+        try {
+            const raw = (await postBackendText({
+                model: MODEL,
+                prompt: prompt,
+                system: systemInstructions
+            }) || '').trim();
+            if (raw.startsWith('[FUERA_DE_ALCANCE]')) {
+                const texto = raw.replace('[FUERA_DE_ALCANCE]', '').trim();
+                conversationHistory.push({ role: 'assistant', content: texto });
+                dismissThinkingAsSystem(texto, true);
+            } else {
+                conversationHistory.push({ role: 'assistant', content: raw });
+                updateLastMsg(raw || 'La IA no proporcionó una respuesta.');
+            }
+        } catch(err) { updateLastMsg('Lo siento, ocurrió un error: ' + err.message); }
+        finally {
+            isProcessing = false; sendButton.disabled = false; questionInput.disabled = false;
+            loadingSpinner.style.display = 'none'; sendButtonText.textContent = 'Enviar'; questionInput.focus();
+        }
+    }
+    function escapeHtml(s) {
+        if (s === undefined || s === null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getSessionHTML() {
+        const clone = chatDisplay.cloneNode(true);
+        const exportStyles =
+            'body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.65;padding:28px;color:#333;max-width:880px;margin:0 auto;background:#fafafa;}' +
+            'h1{color:#007bff;font-size:1.45em;margin-bottom:6px;}' +
+            '.meta{color:#444;margin:6px 0;font-size:.95em;}' +
+            'hr{border:none;border-top:1px solid #dee2e6;margin:22px 0;}' +
+            '.chat-export{padding:4px 0;}' +
+            '.chat-export .user-message,.chat-export .bot-message,.chat-export .system-message{margin-bottom:18px;}' +
+            '.chat-export .system-message{text-align:center;color:#555;font-style:italic;padding:10px 14px;background:#fff3cd;border-radius:10px;border:1px solid #ffeaa7;}' +
+            '.chat-export .system-message.error{background:#f8d7da;color:#721c24;border-color:#f5c6cb;}' +
+            '.chat-export .message{display:flex;align-items:flex-end;gap:12px;}' +
+            '.chat-export .message.user-message{flex-direction:row-reverse;}' +
+            '.chat-export .avatar-img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #e0e0e0;}' +
+            '.chat-export .message-bubble{padding:12px 16px;border-radius:18px;max-width:78%;box-shadow:0 1px 2px rgba(0,0,0,.06);}' +
+            '.chat-export .user-bubble{background:#007bff;color:#fff;}' +
+            '.chat-export .bot-bubble{background:#e9ecef;color:#212529;}' +
+            '.chat-export .bot-bubble strong{color:#007bff;}' +
+            '.chat-export .bot-bubble p{margin:0 0 10px;}.chat-export .bot-bubble p:last-child{margin:0;}' +
+            '.chat-export pre{background:#2d2d2d;color:#f8f8f2;padding:12px;border-radius:8px;overflow-x:auto;font-size:.9em;}' +
+            '.chat-export code{background:#eee;padding:2px 6px;border-radius:4px;font-size:.9em;}' +
+            '.chat-export ul,.chat-export ol{margin:8px 0;padding-left:22px;}';
+        return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Sesión de chat</title><style>' + exportStyles + '</style></head><body>' +
+            '<h1>Sesión de chat</h1>' +
+            '<p class="meta"><strong>Documento:</strong> ' + escapeHtml(PDF_NAME) + '</p>' +
+            '<p class="meta"><strong>Tema del chatbot:</strong> ' + escapeHtml(CHATBOT_THEME) + '</p>' +
+            '<p class="meta"><strong>Modelo:</strong> ' + escapeHtml(MODEL) + '</p>' +
+            '<hr><div class="chat-export">' + clone.innerHTML + '</div></body></html>';
+    }
+
+    function downloadSessionHtml() {
+        const blob = new Blob([getSessionHTML()], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Sesion_Chat_' + Date.now() + '.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function processHtmlToDocx(htmlContent) {
+        const paragraphs = [];
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        const elements = tempDiv.children;
+        if (elements.length === 0 && htmlContent.replace(/\s/g, '').length > 0) {
+            return [new docx.Paragraph({ text: tempDiv.textContent || htmlContent, spacing: { after: 200 } })];
+        }
+        for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            const tagName = element.tagName.toLowerCase();
+            const text = element.textContent || element.innerText || '';
+            if (tagName === 'h1' || tagName === 'h2') {
+                paragraphs.push(new docx.Paragraph({
+                    text: text,
+                    heading: tagName === 'h1' ? docx.HeadingLevel.HEADING_1 : docx.HeadingLevel.HEADING_2,
+                    spacing: { before: 400, after: 200 }
+                }));
+            } else if (tagName === 'h3') {
+                paragraphs.push(new docx.Paragraph({
+                    text: text,
+                    heading: docx.HeadingLevel.HEADING_3,
+                    spacing: { before: 300, after: 200 }
+                }));
+            } else if (tagName === 'ul' || tagName === 'ol') {
+                const listItems = element.querySelectorAll('li');
+                listItems.forEach(function(li) {
+                    paragraphs.push(new docx.Paragraph({
+                        text: li.textContent,
+                        bullet: { level: 0 },
+                        spacing: { after: 100 }
+                    }));
+                });
+            } else if (tagName === 'p') {
+                const textRuns = [];
+                if (element.children.length === 0) {
+                    textRuns.push(new docx.TextRun({ text: text }));
+                } else {
+                    processInlineElements(element, textRuns);
+                }
+                paragraphs.push(new docx.Paragraph({
+                    children: textRuns.length > 0 ? textRuns : [new docx.TextRun({ text: text })],
+                    spacing: { after: 200 }
+                }));
+            } else if (tagName === 'blockquote') {
+                paragraphs.push(new docx.Paragraph({
+                    text: text,
+                    italics: true,
+                    indent: { left: 720 },
+                    spacing: { after: 200 },
+                    border: { left: { color: 'CCCCCC', size: 6, style: docx.BorderStyle.SINGLE } }
+                }));
+            } else if (tagName === 'code') {
+                paragraphs.push(new docx.Paragraph({
+                    text: text,
+                    font: 'Courier New',
+                    shading: { type: docx.ShadingType.SOLID, color: 'F5F5F5' },
+                    spacing: { after: 100 }
+                }));
+            } else if (tagName === 'pre') {
+                paragraphs.push(new docx.Paragraph({
+                    text: text,
+                    font: 'Courier New',
+                    shading: { type: docx.ShadingType.SOLID, color: '2D2D2D' },
+                    color: 'FFFFFF',
+                    spacing: { after: 200 }
+                }));
+            } else {
+                paragraphs.push(new docx.Paragraph({ text: text, spacing: { after: 200 } }));
+            }
+        }
+        return paragraphs;
+    }
+
+    function processInlineElements(element, textRuns) {
+        for (let j = 0; j < element.childNodes.length; j++) {
+            const node = element.childNodes[j];
+            if (node.nodeType === Node.TEXT_NODE) {
+                textRuns.push(new docx.TextRun({ text: node.textContent }));
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                const nodeText = node.textContent || '';
+                if (tagName === 'strong' || tagName === 'b') {
+                    textRuns.push(new docx.TextRun({ text: nodeText, bold: true }));
+                } else if (tagName === 'em' || tagName === 'i') {
+                    textRuns.push(new docx.TextRun({ text: nodeText, italics: true }));
+                } else if (tagName === 'u') {
+                    textRuns.push(new docx.TextRun({ text: nodeText, underline: {} }));
+                } else if (tagName === 'code') {
+                    textRuns.push(new docx.TextRun({
+                        text: nodeText,
+                        font: 'Courier New',
+                        shading: { type: docx.ShadingType.SOLID, color: 'F0F0F0' }
+                    }));
+                } else if (tagName === 'a') {
+                    textRuns.push(new docx.TextRun({ text: nodeText, color: '0066CC', underline: {} }));
+                } else {
+                    processInlineElements(node, textRuns);
+                }
+            }
+        }
+    }
+
+    function downloadSessionWord() {
+        if (typeof docx === 'undefined' || typeof saveAs === 'undefined') {
+            alert('Las librerías para exportar Word aún se están cargando. Espera unos segundos e inténtalo de nuevo.');
+            return;
+        }
+        const chatMessages = chatDisplay.querySelectorAll('.user-message, .bot-message, .system-message');
+        const children = [];
+        children.push(new docx.Paragraph({
+            text: 'Sesión de Chat (documento PDF)',
+            heading: docx.HeadingLevel.HEADING_1,
+            alignment: docx.AlignmentType.CENTER,
+            spacing: { after: 400 }
+        }));
+        children.push(new docx.Paragraph({
+            children: [
+                new docx.TextRun({ text: 'Documento: ', bold: true }),
+                new docx.TextRun({ text: PDF_NAME })
+            ],
+            spacing: { after: 100 }
+        }));
+        children.push(new docx.Paragraph({
+            children: [
+                new docx.TextRun({ text: 'Tema del chatbot: ', bold: true }),
+                new docx.TextRun({ text: CHATBOT_THEME })
+            ],
+            spacing: { after: 100 }
+        }));
+        children.push(new docx.Paragraph({
+            children: [
+                new docx.TextRun({ text: 'Modelo: ', bold: true }),
+                new docx.TextRun({ text: MODEL })
+            ],
+            spacing: { after: 200 }
+        }));
+        children.push(new docx.Paragraph({
+            text: '________________________________________________________________________________________________',
+            spacing: { after: 400 }
+        }));
+
+        chatMessages.forEach(function(msg) {
+            if (msg.classList.contains('system-message')) {
+                children.push(new docx.Paragraph({
+                    text: msg.textContent,
+                    italics: true,
+                    alignment: docx.AlignmentType.CENTER,
+                    spacing: { after: 200 },
+                    color: '666666'
+                }));
+            } else if (msg.classList.contains('user-message')) {
+                const ub = msg.querySelector('.user-bubble');
+                const userText = ub ? ub.textContent.trim() : msg.textContent.replace(/^Usuario:\s*/i, '').trim();
+                children.push(new docx.Paragraph({
+                    children: [
+                        new docx.TextRun({ text: 'Usuario: ', bold: true, color: '0066CC' }),
+                        new docx.TextRun({ text: userText })
+                    ],
+                    spacing: { after: 200 },
+                    alignment: docx.AlignmentType.RIGHT,
+                    shading: { type: docx.ShadingType.SOLID, color: 'E3F2FD' }
+                }));
+            } else if (msg.classList.contains('bot-message')) {
+                const botBubble = msg.querySelector('.message-bubble');
+                if (botBubble) {
+                    const contentDiv = botBubble.querySelector('.tex2jax_process') || botBubble.querySelector('div[style*="margin-top:5px"]');
+                    const modelInfoEl = botBubble.querySelector('div[style*="font-size:0.8em"]');
+                    const modelInfo = modelInfoEl ? modelInfoEl.textContent : '';
+                    if (contentDiv) {
+                        const formatted = processHtmlToDocx(contentDiv.innerHTML);
+                        formatted.forEach(function(paragraph) { children.push(paragraph); });
+                        if (modelInfo) {
+                            children.push(new docx.Paragraph({
+                                children: [new docx.TextRun({ text: modelInfo, italics: true, size: 20, color: '666666' })],
+                                spacing: { after: 200 }
+                            }));
+                        }
+                    } else {
+                        let plain = botBubble.textContent || '';
+                        if (modelInfo) plain = plain.split(modelInfo).join('').trim();
+                        plain = plain.replace(/^Chatbot:\s*/i, '').trim();
+                        children.push(new docx.Paragraph({ text: plain, spacing: { after: 200 } }));
+                    }
+                }
+            }
+        });
+
+        const doc = new docx.Document({
+            sections: [{ properties: {}, children: children }]
+        });
+        docx.Packer.toBlob(doc).then(function(blob) {
+            saveAs(blob, 'Sesion_Chat_' + Date.now() + '.docx');
+        });
+    }
+
+    sendButton.addEventListener('click', sendQuestion);
+    questionInput.addEventListener('keypress', e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); } });
+    document.getElementById('download-html-session-btn').addEventListener('click', downloadSessionHtml);
+    document.getElementById('download-word-session-btn').addEventListener('click', downloadSessionWord);
+    addMsg('Documento "' + PDF_NAME + '" listo. Solo respondo preguntas sobre este contenido o el tema «' + CHATBOT_THEME + '». ¡Puedes empezar!', 'system');
+    questionInput.focus();
+</script>
+</body>
+</html>
